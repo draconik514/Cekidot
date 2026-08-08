@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - CEKIDOT</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="http://localhost:8000/assets/css/style.css">
+    <script id="browser-logger-active">
+(function() {
+    const ENDPOINT = 'http://localhost:8000/_boost/browser-logs';
+    const logQueue = [];
+    let flushTimeout = null;
+    const captureTypes = ["error","warning","info","log","debug","table"];
+
+    console.log('🔍 Browser logger active (MCP server detected). Posting to: ' + ENDPOINT);
+
+    // Store original console methods
+    const originalConsole = {
+        log: console.log,
+        debug: console.debug,
+        info: console.info,
+        error: console.error,
+        warn: console.warn,
+        table: console.table
+    };
+
+    // Helper to safely stringify values
+    function safeStringify(obj) {
+        const seen = new WeakSet();
+        return JSON.stringify(obj, (key, value) => {
+            if (typeof value === 'object' && value !== null) {
+                if (seen.has(value)) return '[Circular]';
+                seen.add(value);
+            }
+            if (value instanceof Error) {
+                return {
+                    name: value.name,
+                    message: value.message,
+                    stack: value.stack
+                };
+            }
+            return value;
+        });
+    }
+
+    // Normalize log type for consistency (e.g., 'warn' to 'warning')
+    function normalizeType(type) {
+        return type === 'warn' ? 'warning' : type;
+    }
+
+    // Determine if a log type should be captured based on configured levels
+    function shouldCapture(type) {
+        return captureTypes.includes(normalizeType(type));
+    }
+
+    // Batch and send logs
+    function flushLogs() {
+        if (logQueue.length === 0) return;
+
+        const batch = logQueue.splice(0, logQueue.length);
+
+        fetch(ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ logs: batch })
+        }).catch(err => {
+            // Silently fail to avoid infinite loops
+            originalConsole.error('Failed to send logs:', err);
+        });
+    }
+
+    // Debounced flush (100ms)
+    function scheduleFlush() {
+        if (flushTimeout) clearTimeout(flushTimeout);
+        flushTimeout = setTimeout(flushLogs, 100);
+    }
+
+    // Intercept console methods
+    ['log', 'debug', 'info', 'error', 'warn', 'table'].forEach(method => {
+        console[method] = function(...args) {
+            // Call original method
+            originalConsole[method].apply(console, args);
+
+            // Capture log data
+            try {
+                if (!shouldCapture(method)) {
+                    return;
+                }
+
+                logQueue.push({
+                    type: method,
+                    timestamp: new Date().toISOString(),
+                    data: args.map(arg => {
+                        try {
+                            return typeof arg === 'object' ? JSON.parse(safeStringify(arg)) : arg;
+                        } catch (e) {
+                            return String(arg);
+                        }
+                    }),
+                    url: window.location.href,
+                    userAgent: navigator.userAgent
+                });
+
+                scheduleFlush();
+            } catch (e) {
+                // Fail silently
+            }
+        };
+    });
+
+    // Global error handlers for uncaught errors
+    const originalOnError = window.onerror;
+    window.onerror = function boostErrorHandler(errorMsg, url, lineNumber, colNumber, error) {
+        try {
+            if (shouldCapture('error')) {
+                logQueue.push({
+                    type: 'uncaught_error',
+                    timestamp: new Date().toISOString(),
+                    data: [{
+                        message: errorMsg,
+                        filename: url,
+                        lineno: lineNumber,
+                        colno: colNumber,
+                        error: error ? {
+                            name: error.name,
+                            message: error.message,
+                            stack: error.stack
+                        } : null
+                    }],
+                    url: window.location.href,
+                    userAgent: navigator.userAgent
+                });
+
+                scheduleFlush();
+            }
+
+        } catch (e) {
+            // Fail silently
+        }
+
+        // Call original handler if it exists
+        if (originalOnError && typeof originalOnError === 'function') {
+            return originalOnError(errorMsg, url, lineNumber, colNumber, error);
+        }
+
+        // Let the error continue to propagate
+        return false;
+    }
+    window.addEventListener('error', (event) => {
+        try {
+            if (!shouldCapture('error')) {
+                return false;
+            }
+
+            logQueue.push({
+                type: 'window_error',
+                timestamp: new Date().toISOString(),
+                data: [{
+                    message: event.message,
+                    filename: event.filename,
+                    lineno: event.lineno,
+                    colno: event.colno,
+                    error: event.error ? {
+                        name: event.error.name,
+                        message: event.error.message,
+                        stack: event.error.stack
+                    } : null
+                }],
+                url: window.location.href,
+                userAgent: navigator.userAgent
+            });
+
+            scheduleFlush();
+        } catch (e) {
+            // Fail silently
+        }
+
+        // Let the error continue to propagate
+        return false;
+    });
+    window.addEventListener('unhandledrejection', (event) => {
+        try {
+            if (!shouldCapture('error')) {
+                return false;
+            }
+
+            logQueue.push({
+                type: 'error',
+                timestamp: new Date().toISOString(),
+                data: [{
+                    message: 'Unhandled Promise Rejection',
+                    reason: event.reason instanceof Error ? {
+                        name: event.reason.name,
+                        message: event.reason.message,
+                        stack: event.reason.stack
+                    } : event.reason
+                }],
+                url: window.location.href,
+                userAgent: navigator.userAgent
+            });
+
+            scheduleFlush();
+        } catch (e) {
+            // Fail silently
+        }
+
+        // Let the rejection continue to propagate
+        return false;
+    });
+
+    // Flush on page unload
+    window.addEventListener('beforeunload', () => {
+        if (logQueue.length > 0) {
+            navigator.sendBeacon(ENDPOINT, JSON.stringify({ logs: logQueue }));
+        }
+    });
+})();
+</script>
+</head>
+<body>
+    <header>
+    <nav class="navbar" id="mainNav">
+        <div class="container">
+            <a href="http://localhost:8000" class="nav-brand">
+                <div class="brand-logo">
+                    <img src="http://localhost:8000/assets/img/logo-sulteng.png" alt="Logo Sulawesi Tengah" onerror="this.style.display='none';this.parentElement.innerHTML='<span style=\'font-size:20px;font-weight:900;color:#eab308;\'>S</span>'">
+                </div>
+                <div class="brand-text">
+                    <span class="brand-name" style="font-size:20px; font-weight:800; letter-spacing:-0.3px; line-height:1.2;">
+                        CEK<span style="color:#eab308;">IDOT</span>
+                    </span>
+                    <span class="brand-sub" style="font-size:8px; font-weight:500; color:rgba(255,255,255,0.55); letter-spacing:1.8px; text-transform:uppercase; display:block; margin-top:1px;">
+                        CEK IKU DAN DOKUMEN TERPADU
+                    </span>
+                </div>
+            </a>
+
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle Menu">
+                <i class="fas fa-bars"></i>
+            </button>
+
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="http://localhost:8000" class="active"><i class="fas fa-home"></i> Beranda</a></li>
+                <li><a href="http://localhost:8000/kirim-surat" class=""><i class="fas fa-envelope"></i> Kirim Surat</a></li>
+                <li><a href="http://localhost:8000/akip" class=""><i class="fas fa-clipboard-check"></i> AKIP</a></li>
+                <li><a href="http://localhost:8000/iki" class=""><i class="fas fa-user-check"></i> IKI</a></li>
+                <li><a href="http://localhost:8000/iku" class=""><i class="fas fa-chart-line"></i> IKU</a></li>
+                <li><a href="http://localhost:8000/capaian" class=""><i class="fas fa-flag-checkered"></i> Capaian Program</a></li>
+                <li><a href="http://localhost:8000/monev" class=""><i class="fas fa-chart-pie"></i> Monev</a></li>
+                <li>
+                    <a href="http://localhost:8000/login" class="btn-login-nav">
+                        <i class="fas fa-user-shield"></i>
+                        <span class="login-text">Admin</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+</header>
+
+    
+    <main>
+        <!-- SLIDER -->
+<section class="slider-section" id="homeSlider">
+    <div class="slider-container" id="sliderContainer">
+                <div class="slide active">
+            <img src="http://localhost:8000/assets/img/slide-1.jpg" alt="Default Slide">
+        </div>
+        <div class="slide">
+            <img src="http://localhost:8000/assets/img/slide-2.jpg" alt="Default Slide 2">
+        </div>
+        <div class="slide">
+            <img src="http://localhost:8000/assets/img/slide-3.jpg" alt="Default Slide 3">
+        </div>
+            </div>
+
+    <button class="slider-btn prev" id="prevBtn"><i class="fas fa-chevron-left"></i></button>
+    <button class="slider-btn next" id="nextBtn"><i class="fas fa-chevron-right"></i></button>
+
+    <div class="slider-dots" id="sliderDots">
+                <span class="dot active" data-index="0"></span>
+                <span class="dot " data-index="1"></span>
+                <span class="dot " data-index="2"></span>
+            </div>
+</section>
+
+<!-- LAYANAN -->
+<section class="layanan-section">
+    <div class="container">
+        <div class="section-header">
+            <div class="header-icon">
+                <i class="fas fa-th-large"></i>
+            </div>
+            <div class="header-line"></div>
+            <h2>Layanan <span>Kami</span></h2>
+            <p class="subtitle">Akses cepat berbagai layanan informasi dan monitoring kinerja</p>
+        </div>
+
+        <div class="layanan-grid">
+            <div class="layanan-card" onclick="window.location.href='http://localhost:8000/kirim-surat'">
+                <div class="layanan-icon"><i class="fas fa-envelope"></i></div>
+                <h3>Persuratan WFH</h3>
+                <p class="layanan-sub">Work From Home</p>
+                <p class="layanan-desc">Kirim surat dan masukan secara digital</p>
+                <a href="http://localhost:8000/kirim-surat" class="btn-layanan"><i class="fas fa-paper-plane"></i> Kirim</a>
+            </div>
+
+            <div class="layanan-card" onclick="window.location.href='http://localhost:8000/iku'">
+                <div class="layanan-icon"><i class="fas fa-chart-line"></i></div>
+                <h3>IKU</h3>
+                <p class="layanan-sub">Indikator Kinerja Utama</p>
+                <p class="layanan-desc">Monitoring capaian kinerja utama dinas</p>
+                <a href="http://localhost:8000/iku" class="btn-layanan"><i class="fas fa-eye"></i> Lihat</a>
+            </div>
+
+            <div class="layanan-card" onclick="window.location.href='http://localhost:8000/akip'">
+                <div class="layanan-icon"><i class="fas fa-clipboard-check"></i></div>
+                <h3>AKIP</h3>
+                <p class="layanan-sub">Akuntabilitas Kinerja</p>
+                <p class="layanan-desc">Laporan akuntabilitas kinerja instansi</p>
+                <a href="http://localhost:8000/akip" class="btn-layanan"><i class="fas fa-eye"></i> Lihat</a>
+            </div>
+
+            <div class="layanan-card" onclick="window.location.href='http://localhost:8000/iki'">
+                <div class="layanan-icon"><i class="fas fa-user-check"></i></div>
+                <h3>IKI</h3>
+                <p class="layanan-sub">Indikator Kinerja Individu</p>
+                <p class="layanan-desc">Penilaian kinerja pegawai individu</p>
+                <a href="http://localhost:8000/iki" class="btn-layanan"><i class="fas fa-eye"></i> Lihat</a>
+            </div>
+
+            <div class="layanan-card" onclick="window.location.href='http://localhost:8000/capaian'">
+                <div class="layanan-icon"><i class="fas fa-flag-checkered"></i></div>
+                <h3>Capaian Program</h3>
+                <p class="layanan-sub">Evaluasi Program</p>
+                <p class="layanan-desc">Laporan capaian kinerja program dinas</p>
+                <a href="http://localhost:8000/capaian" class="btn-layanan"><i class="fas fa-eye"></i> Lihat</a>
+            </div>
+
+            <div class="layanan-card" onclick="window.location.href='http://localhost:8000/monev'">
+                <div class="layanan-icon"><i class="fas fa-chart-pie"></i></div>
+                <h3>Monev</h3>
+                <p class="layanan-sub">Monitoring & Evaluasi</p>
+                <p class="layanan-desc">Monitoring dan evaluasi kinerja program</p>
+                <a href="http://localhost:8000/monev" class="btn-layanan"><i class="fas fa-eye"></i> Lihat</a>
+            </div>
+        </div>
+    </div>
+</section>
+    </main>
+    
+    <footer class="footer">
+    <div class="container">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <div class="footer-logo">
+                    <div class="logo-icon">
+                        <img src="http://localhost:8000/assets/img/logo-sulteng.png" alt="Logo Sulawesi Tengah" onerror="this.style.display='none';this.parentElement.innerHTML='<span style=\'font-size:18px;font-weight:900;color:#eab308;\'>S</span>'">
+                    </div>
+                    <span class="logo-text">CEK<span>IDOT</span></span>
+                </div>
+                <p class="footer-desc">
+                    CEK IKU DAN DOKUMEN TERPADU - Dinas Pariwisata Provinsi Sulawesi Tengah.
+                    Monitoring dan evaluasi capaian kinerja utama secara transparan dan akuntabel.
+                </p>
+                <div class="footer-social">
+                    <a href="https://www.facebook.com/share/1XYixEkxXT/?mibextid=wwXIfr" target="_blank" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                    <a href="https://www.tiktok.com/@dispar.sulteng?_r=1&_t=ZS-988tKvc8ZOu" target="_blank" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+                    <a href="https://www.instagram.com/dinaspariwisatasulteng?igsh=MXVobWZ2aWIxdzlyYQ==" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                    <a href="https://www.youtube.com/@DinasPariwisataSulteng" target="_blank" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+
+            <div class="footer-links">
+                <h4>Informasi</h4>
+                <ul>
+                    <li><a href="https://pariwisata.sultengprov.go.id/profil1.html">Tentang</a></li>
+                    <li><a href="https://pariwisata.sultengprov.go.id/profil1/contacts.html">Hubungi Kami</a></li>
+                    <li><a href="https://pariwisata.sultengprov.go.id/berita.html">Berita</a></li>
+                    <li><a href="https://pariwisata.sultengprov.go.id/informasi-publik/ppid.html">PPID</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-links">
+                <h4>Layanan</h4>
+                <ul>
+                    <li><a href="http://localhost:8000/iku">IKU</a></li>
+                    <li><a href="http://localhost:8000/akip">AKIP</a></li>
+                    <li><a href="http://localhost:8000/iki">IKI</a></li>
+                    <li><a href="http://localhost:8000/monev">Monev</a></li>
+                    <li><a href="http://localhost:8000/kirim-surat">Persuratan</a></li>
+                    <li><a href="http://localhost:8000/capaian">Capaian Program</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-contact">
+                <h4>Kontak</h4>
+                <ul>
+                    <li>
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>Jl. Dewi Sartika No.45 Palu, Kode Pos 94121</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-phone"></i>
+                        <span>(0451) 483942</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-envelope"></i>
+                        <span>dispar@sulteng.go.id</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-globe"></i>
+                        <span>pariwisata.sultengprov.go.id</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2026 CEKIDOT - Dinas Pariwisata Provinsi Sulawesi Tengah</p>
+            <p class="footer-credit">Dibangun dengan <i class="fas fa-heart" style="color:#eab308;"></i> untuk Sulawesi Tengah</p>
+        </div>
+    </div>
+</footer>
+
+<style>
+    .footer {
+        background: #0f3b5e;
+        color: rgba(255, 255, 255, 0.8);
+        padding: 30px 0 0;
+        border-top: 3px solid #eab308;
+    }
+
+    .footer .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 24px;
+    }
+
+    .footer-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1.5fr;
+        gap: 40px;
+        padding-bottom: 30px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .footer-brand .footer-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .footer-brand .footer-logo .logo-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        padding: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .footer-brand .footer-logo .logo-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+    }
+
+    .footer-brand .footer-logo .logo-text {
+        font-size: 20px;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: -0.3px;
+    }
+
+    .footer-brand .footer-logo .logo-text span {
+        color: #eab308;
+    }
+
+    .footer-brand .footer-desc {
+        font-size: 13px;
+        line-height: 1.7;
+        color: rgba(255, 255, 255, 0.6);
+        max-width: 320px;
+        margin-bottom: 16px;
+    }
+
+    .footer-social {
+        display: flex;
+        gap: 10px;
+    }
+
+    .footer-social a {
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 50%;
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: all 0.3s ease;
+        font-size: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .footer-social a:hover {
+        background: #eab308;
+        color: #0f3b5e;
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(234, 179, 8, 0.30);
+        border-color: #eab308;
+    }
+
+    .footer-links h4,
+    .footer-contact h4 {
+        font-size: 14px;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 14px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        position: relative;
+        padding-bottom: 10px;
+    }
+
+    .footer-links h4::after,
+    .footer-contact h4::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 30px;
+        height: 2px;
+        background: #eab308;
+        border-radius: 2px;
+    }
+
+    .footer-links ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .footer-links ul li {
+        margin-bottom: 8px;
+    }
+
+    .footer-links ul li a {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        font-size: 13px;
+        transition: all 0.3s ease;
+        display: inline-block;
+    }
+
+    .footer-links ul li a:hover {
+        color: #eab308;
+        transform: translateX(4px);
+    }
+
+    .footer-contact ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .footer-contact ul li {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 10px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.6);
+        line-height: 1.5;
+    }
+
+    .footer-contact ul li i {
+        color: #eab308;
+        font-size: 14px;
+        margin-top: 2px;
+        min-width: 18px;
+        text-align: center;
+    }
+
+    .footer-contact ul li span {
+        flex: 1;
+    }
+
+    .footer-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 16px 0;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    .footer-bottom .footer-credit {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    .footer-bottom .footer-credit i {
+        color: #eab308;
+    }
+
+    @media (max-width: 992px) {
+        .footer-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .footer-grid {
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        .footer-brand .footer-desc {
+            max-width: 100%;
+        }
+
+        .footer-bottom {
+            flex-direction: column;
+            text-align: center;
+            gap: 4px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .footer-brand .footer-logo .logo-icon {
+            width: 30px;
+            height: 30px;
+            padding: 3px;
+        }
+
+        .footer-brand .footer-logo .logo-text {
+            font-size: 17px;
+        }
+
+        .footer-social a {
+            width: 30px;
+            height: 30px;
+            font-size: 12px;
+        }
+    }
+</style>
+
+    
+    <script src="http://localhost:8000/assets/js/script.js"></script>
+    </body>
+</html>
