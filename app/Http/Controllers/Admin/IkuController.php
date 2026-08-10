@@ -10,6 +10,7 @@ use App\Models\IkuEkraf;
 use App\Models\IkuPdrb;
 use App\Models\IkuInfografis;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 
 class IkuController extends Controller
 {
@@ -205,8 +206,8 @@ class IkuController extends Controller
         // Infografis
         $infografis = IkuInfografis::where('kategori', $kategori_aktif)->first();
         $infografis_file = $infografis ? $infografis->file_name : '';
-        $infografis_exists = $infografis && !empty($infografis->file_name) && file_exists(public_path('uploads/iku/' . $kategori_aktif . '/' . $infografis->file_name));
-        $infografis_path = $infografis_exists ? public_path('uploads/iku/' . $kategori_aktif . '/' . $infografis_file) : '';
+        $infografis_exists = $infografis && !empty($infografis->file_name) && Storage::disk('public')->exists('uploads/iku/' . $kategori_aktif . '/' . $infografis->file_name);
+        $infografis_path = $infografis_exists ? storage_path('app/public/uploads/iku/' . $kategori_aktif . '/' . $infografis_file) : '';
         
         // Sumber data
         $sumber = IkuPenilaian::where('kategori', $kategori_aktif)
@@ -488,7 +489,7 @@ class IkuController extends Controller
                     $ext = $file->getClientOriginalExtension();
                     if (in_array($ext, $allowed) && $file->getSize() <= $max_size) {
                         $file_name = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
-                        $file->move(public_path('uploads/iku/' . $kategori_aktif), $file_name);
+                        $file->storeAs('uploads/iku/' . $kategori_aktif, $file_name, 'public');
                         $uploaded_files[] = $file_name;
                     }
                 }
@@ -521,22 +522,10 @@ class IkuController extends Controller
             $ext = $file->getClientOriginalExtension();
             
             if (in_array($ext, $allowed) && $file->getSize() <= 5 * 1024 * 1024) {
-                $dir = public_path('uploads/iku/' . $kategori);
-                if (!is_dir($dir)) {
-                    mkdir($dir, 0777, true);
-                }
-                
-                // Hapus file lama
-                $existing = IkuInfografis::where('kategori', $kategori)->first();
-                if ($existing && $existing->file_name) {
-                    $old_path = public_path('uploads/iku/' . $kategori . '/' . $existing->file_name);
-                    if (file_exists($old_path)) {
-                        unlink($old_path);
-                    }
-                }
+                Storage::disk('public')->delete('uploads/iku/' . $kategori . '/' . $existing->file_name);
                 
                 $file_name = 'infografis_' . $kategori . '_' . time() . '.' . $ext;
-                $file->move($dir, $file_name);
+                $file->storeAs('uploads/iku/' . $kategori, $file_name, 'public');
                 
                 IkuInfografis::updateOrCreate(
                     ['kategori' => $kategori],
@@ -546,7 +535,7 @@ class IkuController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Infografis berhasil diupload!',
-                    'file_path' => asset('uploads/iku/' . $kategori . '/' . $file_name),
+                    'file_path' => Storage::disk('public')->url('uploads/iku/' . $kategori . '/' . $file_name),
                     'file_name' => $file_name,
                 ]);
             }
@@ -561,10 +550,7 @@ class IkuController extends Controller
         
         $infografis = IkuInfografis::where('kategori', $kategori)->first();
         if ($infografis && $infografis->file_name) {
-            $file_path = public_path('uploads/iku/' . $kategori . '/' . $infografis->file_name);
-            if (file_exists($file_path)) {
-                unlink($file_path);
-            }
+            Storage::disk('public')->delete('uploads/iku/' . $kategori . '/' . $infografis->file_name);
             $infografis->delete();
         }
         
@@ -590,10 +576,7 @@ class IkuController extends Controller
                 return $f !== $filename;
             });
             
-            $file_path = public_path('uploads/iku/' . $kategori . '/' . $filename);
-            if (file_exists($file_path)) {
-                unlink($file_path);
-            }
+            Storage::disk('public')->delete('uploads/iku/' . $kategori . '/' . $filename);
             
             $sumber->update(['file_sumber' => implode('|', $new_files)]);
         }

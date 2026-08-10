@@ -1367,7 +1367,7 @@
             <div class="preview-wrapper">
                 <div class="slide-wrapper" id="previewContainer">
                     @if($infografis_exists && $infografis_path)
-                    <img src="{{ asset('uploads/iku/' . $kategori_aktif . '/' . $infografis_file . '?v=' . time()) }}" alt="Infografis IKU" id="previewImage">
+                    <img src="{{ asset('storage/uploads/iku/' . $kategori_aktif . '/' . $infografis_file . '?v=' . time()) }}" alt="Infografis IKU" id="previewImage">
                     @else
                     <div class="empty-slide" id="emptyPreview">
                         <i class="fas fa-image"></i>
@@ -1796,7 +1796,7 @@
                         <span class="status-text">
                             <span class="nama-file">{{ $f }}</span>
                         </span>
-                        <a href="{{ asset('uploads/iku/' . $kategori_aktif . '/' . $f) }}" target="_blank" class="btn-lihat" title="Lihat File">
+                        <a href="{{ asset('storage/uploads/iku/' . $kategori_aktif . '/' . $f) }}" target="_blank" class="btn-lihat" title="Lihat File">
                             <i class="fas fa-eye"></i>
                         </a>
                         <a href="{{ route('admin.iku.delete.file', ['filename' => $f, 'kategori' => $kategori_aktif, 'tahun' => $tahun_aktif, 'sub' => $subkategori_wisata]) }}" 

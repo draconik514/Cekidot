@@ -1459,7 +1459,7 @@ function openViewModal(id, judul, deskripsi, tahun, tipe_konten, file_dokumen, l
     var downloadBtn = document.getElementById('viewDownloadBtn');
     
     if (tipe === 'file' && file_dokumen) {
-        var filePath = '{{ asset('uploads/iki') }}/' + file_dokumen;
+        var filePath = '{{ asset('storage/uploads/iki') }}/' + file_dokumen;
         var ext = (file_dokumen || '').split('.').pop().toLowerCase();
         var isImage = ['jpg','jpeg','png','gif','webp','bmp'].includes(ext);
         var isPDF = ext === 'pdf';

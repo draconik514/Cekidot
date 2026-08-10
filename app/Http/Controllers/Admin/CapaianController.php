@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\CapaianProgram;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 
 class CapaianController extends Controller
 {
@@ -232,21 +233,10 @@ class CapaianController extends Controller
                 if ($file->isValid()) {
                     $ext = $file->getClientOriginalExtension();
                     if (in_array($ext, $allowed) && $file->getSize() <= $max_size) {
-                        $dir = public_path('uploads/capaian');
-                        if (!is_dir($dir)) {
-                            mkdir($dir, 0777, true);
-                        }
-                        
-                        $existing = CapaianProgram::where('id', $id)->first();
-                        if ($existing && $existing->file_sumber) {
-                            $old_path = public_path('uploads/capaian/' . $existing->file_sumber);
-                            if (file_exists($old_path)) {
-                                unlink($old_path);
-                            }
-                        }
+                        Storage::disk('public')->delete('uploads/capaian/' . $existing->file_sumber);
                         
                         $file_name = 'sumber_' . $id . '_' . time() . '.' . $ext;
-                        $file->move($dir, $file_name);
+                        $file->storeAs('uploads/capaian', $file_name, 'public');
                         CapaianProgram::where('id', $id)->update(['file_sumber' => $file_name]);
                     }
                 }
@@ -264,10 +254,7 @@ class CapaianController extends Controller
         $data = CapaianProgram::where('tahun', $tahun_aktif)->get();
         foreach ($data as $item) {
             if ($item->file_sumber) {
-                $file_path = public_path('uploads/capaian/' . $item->file_sumber);
-                if (file_exists($file_path)) {
-                    unlink($file_path);
-                }
+                Storage::disk('public')->delete('uploads/capaian/' . $item->file_sumber);
             }
             $item->update([
                 'target' => 0,
@@ -289,10 +276,7 @@ class CapaianController extends Controller
         
         $item = CapaianProgram::where('id', $id)->where('tahun', $tahun_aktif)->first();
         if ($item && $item->file_sumber) {
-            $file_path = public_path('uploads/capaian/' . $item->file_sumber);
-            if (file_exists($file_path)) {
-                unlink($file_path);
-            }
+            Storage::disk('public')->delete('uploads/capaian/' . $item->file_sumber);
             $item->update(['file_sumber' => null]);
         }
         

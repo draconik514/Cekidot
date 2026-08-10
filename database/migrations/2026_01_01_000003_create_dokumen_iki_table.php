@@ -11,9 +11,15 @@ return new class extends Migration
         Schema::create('dokumen_iki', function (Blueprint $table) {
             $table->id();
             $table->string('judul');
-            $table->string('kategori');
+            $table->text('deskripsi')->nullable();
+            $table->string('file_dokumen')->nullable();
+            $table->string('tipe_konten')->default('file');
+            $table->string('link_url')->nullable();
+            $table->string('file_type')->nullable();
+            $table->bigInteger('file_size')->default(0);
             $table->integer('tahun');
-            $table->string('file');
+            $table->integer('urutan')->default(0);
+            $table->string('status')->default('aktif');
             $table->timestamps();
         });
     }

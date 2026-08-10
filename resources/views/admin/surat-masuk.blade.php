@@ -832,7 +832,7 @@ function openFileModal(id, fileName, asal, perihal, namaPengirim) {
     document.getElementById('modalPerihal').textContent = perihal;
     
     const preview = document.getElementById('modalFilePreview');
-    const filePath = '{{ asset('uploads/surat') }}/' + fileName;
+    const filePath = '{{ asset('storage/uploads/surat') }}/' + fileName;
     
     if (isImage) {
         preview.innerHTML = `<img src="${filePath}" style="width:100%; max-height:400px; object-fit:contain; border-radius:8px;" alt="${fileName}">`;

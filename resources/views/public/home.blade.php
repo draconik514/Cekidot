@@ -226,7 +226,7 @@
         @else
         @foreach($slides as $index => $slide)
         <div class="slide {{ $index === 0 ? 'active' : '' }}" data-index="{{ $index }}">
-            <img src="{{ asset('uploads/slider/' . $slide->gambar) }}" alt="{{ $slide->judul }}">
+            <img src="{{ asset('assets/img/slider/' . $slide->gambar) }}" alt="{{ $slide->judul }}">
         </div>
         @endforeach
         @endif

@@ -29,7 +29,7 @@ class SliderController extends Controller
 
         $file = $request->file('gambar');
         $file_name = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
-        $file->move(public_path('uploads/slider'), $file_name);
+        $file->move(public_path('assets/img/slider'), $file_name);
 
         $max_urutan = Slider::max('urutan') ?? 0;
 
@@ -47,11 +47,9 @@ class SliderController extends Controller
     {
         $slider = Slider::findOrFail($id);
         
-        $file_path = public_path('uploads/slider/' . $slider->gambar);
-        if (file_exists($file_path)) {
-            unlink($file_path);
-        }
-        
+        $path = public_path('assets/img/slider/' . $slider->gambar);
+        if (file_exists($path)) unlink($path);
+
         $slider->delete();
         return redirect()->route('admin.slider.index')->with('success', 'Slide berhasil dihapus!');
     }

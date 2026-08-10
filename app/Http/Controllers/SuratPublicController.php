@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\SuratMasuk;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 
 class SuratPublicController extends Controller
 {
@@ -33,7 +34,7 @@ class SuratPublicController extends Controller
         if ($request->hasFile('file')) {
             $file = $request->file('file');
             $file_name = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
-            $file->move(public_path('uploads/surat'), $file_name);
+            $file->storeAs('uploads/surat', $file_name, 'public');
         }
 
         SuratMasuk::create([

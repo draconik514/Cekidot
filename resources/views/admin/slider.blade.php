@@ -443,7 +443,7 @@
 <div class="grid">
     @foreach($slides as $slide)
     <div class="card">
-        <img src="{{ asset('uploads/slider/' . $slide->gambar) }}" alt="{{ $slide->judul }}">
+        <img src="{{ asset('assets/img/slider/' . $slide->gambar) }}" alt="{{ $slide->judul }}">
         <div class="info">
             <div class="judul">{{ $slide->judul }}</div>
             <div class="urut">Urutan #{{ $slide->urutan }}</div>

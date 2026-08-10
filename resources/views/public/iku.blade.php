@@ -714,7 +714,7 @@
             <div class="infografis-section">
                 <div class="infografis-wrapper">
                     @if($infografis_exists && $infografis_file)
-                    <img src="{{ asset('uploads/iku/' . $kategori_aktif . '/' . $infografis_file) }}" alt="Infografis IKU {{ $kategori_aktif }}">
+                    <img src="{{ asset('storage/uploads/iku/' . $kategori_aktif . '/' . $infografis_file) }}" alt="Infografis IKU {{ $kategori_aktif }}">
                     @else
                     <div class="no-infografis">
                         <i class="fas fa-image"></i>
@@ -964,14 +964,14 @@
                     @php $files = explode('|', $sumber_data['file_sumber']); @endphp
                     @foreach($files as $file)
                         @if(empty($file)) @continue @endif
-                        @php $file_path = public_path('uploads/iku/' . $kategori_aktif . '/' . $file); @endphp
+                        @php $file_path = storage_path('app/public/uploads/iku/' . $kategori_aktif . '/' . $file); @endphp
                         @if(file_exists($file_path))
                         <div class="sumber-file">
                             <i class="fas fa-file"></i>
                             <span class="file-name">{{ $file }}</span>
                             <div class="btn-group">
-                                <button class="btn btn-view" onclick="openFileModal('{{ asset('uploads/iku/' . $kategori_aktif . '/' . $file) }}')"><i class="fas fa-eye"></i> Lihat</button>
-                                <a href="{{ asset('uploads/iku/' . $kategori_aktif . '/' . $file) }}" class="btn btn-download" download><i class="fas fa-download"></i> Download</a>
+                                <button class="btn btn-view" onclick="openFileModal('{{ asset('storage/uploads/iku/' . $kategori_aktif . '/' . $file) }}')"><i class="fas fa-eye"></i> Lihat</button>
+                                <a href="{{ asset('storage/uploads/iku/' . $kategori_aktif . '/' . $file) }}" class="btn btn-download" download><i class="fas fa-download"></i> Download</a>
                             </div>
                         </div>
                         @endif

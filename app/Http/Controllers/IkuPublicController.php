@@ -7,6 +7,7 @@ use App\Models\IkuEkraf;
 use App\Models\IkuWisatawan;
 use App\Models\IkuPdrb;
 use App\Models\IkuInfografis;
+use Illuminate\Support\Facades\Storage;
 
 class IkuPublicController extends Controller
 {
@@ -133,7 +134,7 @@ class IkuPublicController extends Controller
         // Infografis
         $infografis = IkuInfografis::where('kategori', $kategori_aktif)->first();
         $infografis_file = $infografis ? $infografis->file_name : '';
-        $infografis_exists = $infografis && !empty($infografis->file_name) && file_exists(public_path('uploads/iku/' . $kategori_aktif . '/' . $infografis->file_name));
+        $infografis_exists = $infografis && !empty($infografis->file_name) && Storage::disk('public')->exists('uploads/iku/' . $kategori_aktif . '/' . $infografis->file_name);
         
         // Sumber data
         $sumber = IkuPenilaian::where('kategori', $kategori_aktif)

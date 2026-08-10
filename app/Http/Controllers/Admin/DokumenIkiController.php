@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\DokumenIki;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 
 class DokumenIkiController extends Controller
 {
@@ -61,7 +62,7 @@ class DokumenIkiController extends Controller
         if ($request->hasFile('file_dokumen')) {
             $file = $request->file('file_dokumen');
             $file_name = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
-            $file->move(public_path('uploads/iki'), $file_name);
+            $file->storeAs('uploads/iki', $file_name, 'public');
             $file_type = $file->getClientOriginalExtension();
             $file_size = $file->getSize();
         }
@@ -120,10 +121,7 @@ class DokumenIkiController extends Controller
             $data['file_size'] = 0;
             
             if ($dokumen->file_dokumen && $dokumen->tipe_konten == 'file') {
-                $file_path = public_path('uploads/iki/' . $dokumen->file_dokumen);
-                if (file_exists($file_path)) {
-                    unlink($file_path);
-                }
+                Storage::disk('public')->delete('uploads/iki/' . $dokumen->file_dokumen);
             }
         } else {
             $data['link_url'] = null;
@@ -137,15 +135,10 @@ class DokumenIkiController extends Controller
                     return back()->with('error', 'Ukuran file maksimal 50MB!')->withInput();
                 }
                 
-                if ($dokumen->file_dokumen) {
-                    $old_path = public_path('uploads/iki/' . $dokumen->file_dokumen);
-                    if (file_exists($old_path)) {
-                        unlink($old_path);
-                    }
-                }
+                Storage::disk('public')->delete('uploads/iki/' . $dokumen->file_dokumen);
                 
                 $file_name = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
-                $file->move(public_path('uploads/iki'), $file_name);
+                $file->storeAs('uploads/iki', $file_name, 'public');
                 $data['file_dokumen'] = $file_name;
                 $data['file_type'] = $file->getClientOriginalExtension();
                 $data['file_size'] = $file->getSize();
@@ -169,10 +162,7 @@ class DokumenIkiController extends Controller
         $dokumen = DokumenIki::findOrFail($id);
         
         if ($dokumen->tipe_konten == 'file' && $dokumen->file_dokumen) {
-            $file_path = public_path('uploads/iki/' . $dokumen->file_dokumen);
-            if (file_exists($file_path)) {
-                unlink($file_path);
-            }
+            Storage::disk('public')->delete('uploads/iki/' . $dokumen->file_dokumen);
         }
         
         $dokumen->delete();

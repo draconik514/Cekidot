@@ -884,7 +884,7 @@ function openPreviewModal(judul, deskripsi, tipeKonten, status, fileName, linkUr
     iconEl.className = 'fas fa-file';
     
     if (tipe === 'file' && fileName) {
-        var filePath = '{{ asset('uploads/akip') }}/' + fileName;
+        var filePath = '{{ asset('storage/uploads/akip') }}/' + fileName;
         var ext = fileName.split('.').pop().toLowerCase();
         var isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext);
         var isPDF = ext === 'pdf';

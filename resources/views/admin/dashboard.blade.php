@@ -234,12 +234,16 @@
 
 @section('content')
 <div class="header">
-    <div>
+    <div class="header-left">
         <h1><i class="fas fa-home"></i> Dashboard</h1>
-        <span class="info">Selamat datang kembali, <strong>{{ auth()->user()->nama_admin ?? 'Admin' }}</strong></span>
+        <span class="info">Selamat datang kembali, <strong>{{ auth()->user()->nama_admin ?? 'Admin' }}</strong> <span style="color:#94a3b8; margin-left:6px;">• {{ date('d F Y') }}</span></span>
     </div>
     <div class="admin-welcome">
-        <i class="fas fa-user-circle"></i> {{ auth()->user()->nama_admin ?? 'Admin' }}
+        <div class="avatar">{{ strtoupper(substr(auth()->user()->nama_admin ?? 'A', 0, 1)) }}</div>
+        <div>
+            <div>{{ auth()->user()->nama_admin ?? 'Admin' }}</div>
+            <div class="role">Administrator</div>
+        </div>
     </div>
 </div>
 

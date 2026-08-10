@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Admin - CEKIDOT')</title>
+    <link rel="icon" href="{{ asset('assets/img/logo-sulteng.png') }}" type="image/png">
     <link rel="stylesheet" href="{{ asset('assets/css/fontawesome.min.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('assets/css/admin.css') }}">
     @yield('styles')
 </head>
