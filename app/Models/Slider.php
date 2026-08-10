@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Slider extends Model
 {
-    protected $table = 'slider';
+    protected $table = 'sliders';
     
     protected $fillable = [
         'gambar', 'judul', 'urutan', 'status'
