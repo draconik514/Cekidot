@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\DokumenAkipController;
 use App\Http\Controllers\Admin\DokumenIkiController;
 use App\Http\Controllers\Admin\IkuController;
 use App\Http\Controllers\Admin\CapaianController;
+use App\Http\Controllers\Admin\MonevController;
 use App\Http\Controllers\Admin\ManajemenUserController;
 use App\Http\Controllers\Admin\FolderDokumenController;
 use App\Http\Controllers\Admin\UploadAnggotaController;

@@ -728,6 +728,8 @@
                     </button>
                 </div>
 
+                @include('public.partials.upload-anggota-section', ['route_name' => route('akip.public')])
+
                 <div class="dokumen-grid">
                     @if($dokumen->isEmpty())
                     <div class="empty-state">
