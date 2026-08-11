@@ -14,6 +14,10 @@ class AdminMiddleware
             return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu');
         }
 
+        if (!in_array(Auth::user()->role, ['super_admin', 'admin_divisi'])) {
+            return redirect()->route('anggota.dashboard')->with('error', 'Akses ditolak.');
+        }
+
         return $next($request);
     }
 }

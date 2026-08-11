@@ -62,6 +62,23 @@
                     <i class="fas fa-chart-pie"></i><span>Monev Renaksi</span>
                 </a>
             </li>
+            <li>
+                <a href="{{ route('admin.upload.index') }}" class="{{ request()->routeIs('admin.upload.*') ? 'active' : '' }}">
+                    <i class="fas fa-file-upload"></i><span>Upload Anggota</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('admin.folder.index') }}" class="{{ request()->routeIs('admin.folder.*') ? 'active' : '' }}">
+                    <i class="fas fa-folder"></i><span>Folder Dokumen</span>
+                </a>
+            </li>
+            @if(auth()->user()?->isSuperAdmin() || auth()->user()?->isAdminDivisi())
+            <li>
+                <a href="{{ route('admin.users.index') }}" class="{{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                    <i class="fas fa-users"></i><span>Manajemen User</span>
+                </a>
+            </li>
+            @endif
             <li class="nav-divider"></li>
             <li class="nav-logout">
                 <a href="{{ route('logout') }}">

@@ -15,7 +15,16 @@ class User extends Authenticatable
         'password',
         'nama_admin',
         'email',
+        'role',
+        'divisi',
     ];
+
+    public function isSuperAdmin(): bool { return $this->role === 'super_admin'; }
+    public function isAdminDivisi(): bool { return $this->role === 'admin_divisi'; }
+    public function isAnggota(): bool { return $this->role === 'anggota'; }
+
+    public function uploads() { return $this->hasMany(UploadAnggota::class); }
+    public function folderDibuat() { return $this->hasMany(FolderDokumen::class, 'created_by'); }
 
     protected $hidden = [
         'password',

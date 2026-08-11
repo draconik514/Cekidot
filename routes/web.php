@@ -16,7 +16,10 @@ use App\Http\Controllers\Admin\DokumenAkipController;
 use App\Http\Controllers\Admin\DokumenIkiController;
 use App\Http\Controllers\Admin\IkuController;
 use App\Http\Controllers\Admin\CapaianController;
-use App\Http\Controllers\Admin\MonevController;
+use App\Http\Controllers\Admin\ManajemenUserController;
+use App\Http\Controllers\Admin\FolderDokumenController;
+use App\Http\Controllers\Admin\UploadAnggotaController;
+use App\Http\Controllers\AnggotaController;
 
 // ============================================================
 // PUBLIC ROUTES
@@ -40,8 +43,13 @@ Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/reset-password', [AuthController::class, 'resetPassword'])->name('reset.password');
 
 // ============================================================
-// ADMIN ROUTES (Protected)
+// ANGGOTA ROUTES (Protected)
 // ============================================================
+Route::prefix('anggota')->middleware(['role:anggota'])->group(function () {
+    Route::get('/', [AnggotaController::class, 'dashboard'])->name('anggota.dashboard');
+    Route::post('/upload', [AnggotaController::class, 'store'])->name('anggota.upload');
+    Route::get('/delete/{upload}', [AnggotaController::class, 'destroy'])->name('anggota.delete');
+});
 Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
 
@@ -91,4 +99,20 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/monev', [MonevController::class, 'index'])->name('admin.monev.index');
     Route::post('/monev', [MonevController::class, 'update'])->name('admin.monev.update');
     Route::post('/monev/delete', [MonevController::class, 'destroy'])->name('admin.monev.delete');
+
+    // Manajemen User
+    Route::get('/users', [ManajemenUserController::class, 'index'])->name('admin.users.index');
+    Route::post('/users', [ManajemenUserController::class, 'store'])->name('admin.users.store');
+    Route::post('/users/{user}', [ManajemenUserController::class, 'update'])->name('admin.users.update');
+    Route::get('/users/{user}/delete', [ManajemenUserController::class, 'destroy'])->name('admin.users.destroy');
+
+    // Folder Dokumen
+    Route::get('/folder-dokumen', [FolderDokumenController::class, 'index'])->name('admin.folder.index');
+    Route::post('/folder-dokumen', [FolderDokumenController::class, 'store'])->name('admin.folder.store');
+    Route::post('/folder-dokumen/{folder}', [FolderDokumenController::class, 'update'])->name('admin.folder.update');
+    Route::get('/folder-dokumen/{folder}/delete', [FolderDokumenController::class, 'destroy'])->name('admin.folder.destroy');
+
+    // Upload Anggota (admin lihat)
+    Route::get('/upload-anggota', [UploadAnggotaController::class, 'index'])->name('admin.upload.index');
+    Route::get('/upload-anggota/{upload}/delete', [UploadAnggotaController::class, 'destroy'])->name('admin.upload.destroy');
 });

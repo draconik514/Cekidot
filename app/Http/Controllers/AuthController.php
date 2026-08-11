@@ -23,6 +23,10 @@ class AuthController extends Controller
 
         if (Auth::attempt(['username' => $credentials['username'], 'password' => $credentials['password']])) {
             $request->session()->regenerate();
+            $role = Auth::user()->role;
+            if ($role === 'anggota') {
+                return redirect()->route('anggota.dashboard')->with('success', 'Login berhasil!');
+            }
             return redirect()->route('admin.dashboard')->with('success', 'Login berhasil!');
         }
 
