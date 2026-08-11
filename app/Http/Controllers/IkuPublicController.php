@@ -225,10 +225,10 @@ class IkuPublicController extends Controller
         $predikat = $this->getPredikat($capaian_formatted);
         
         // Total per bulan untuk wisatawan
+        $bulan_keys = ['januari', 'februari', 'maret', 'april', 'mei', 'juni', 'juli', 'agustus', 'september', 'oktober', 'november', 'desember'];
         $total_bulan = [];
         $total_keseluruhan = 0;
         if ($kategori_aktif == 'Wisatawan') {
-            $bulan_keys = ['januari', 'februari', 'maret', 'april', 'mei', 'juni', 'juli', 'agustus', 'september', 'oktober', 'november', 'desember'];
             foreach ($bulan_keys as $key) {
                 $total_bulan[$key] = 0;
             }
@@ -277,7 +277,7 @@ class IkuPublicController extends Controller
             'total_ekraf_formatted', 'pdrb_adhb_ekraf_display',
             'proporsi_ekraf_formatted',
             'predikat',
-            'total_bulan', 'total_keseluruhan',
+            'bulan_keys', 'total_bulan', 'total_keseluruhan',
             'total_nusantara', 'total_mancanegara',
             'akumulasi_data'
         ));

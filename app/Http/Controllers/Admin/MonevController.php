@@ -10,7 +10,17 @@ use Illuminate\Support\Facades\DB;
 
 class MonevController extends Controller
 {
+    public static function getPredikatStatic($capaian)
+    {
+        return self::getPredikatLogic($capaian);
+    }
+
     protected function getPredikat($capaian)
+    {
+        return self::getPredikatLogic($capaian);
+    }
+
+    private static function getPredikatLogic($capaian)
     {
         if ($capaian === null || $capaian === '') {
             return ['label' => 'BELUM ADA', 'class' => 'belum-ada'];

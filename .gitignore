@@ -21,7 +21,10 @@
 /public/uploads
 /storage/*.key
 /storage/pail
+/storage/app/public/uploads
 /vendor
+/database/database.sqlite
+.env.production.example
 _ide_helper.php
 Homestead.json
 Homestead.yaml
