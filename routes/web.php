@@ -141,7 +141,7 @@ Route::prefix('admin')->middleware(['role:super_admin,admin_divisi,admin_bidang'
 // ============================================================
 // ARSIP SURAT (Super Admin & Admin Bidang)
 // ============================================================
-Route::prefix('admin')->middleware(['role:super_admin,admin_bidang'])->group(function () {
+Route::prefix('admin')->middleware(['role:super_admin,admin_divisi'])->group(function () {
     Route::get('/arsip', [ArsipSuratController::class, 'index'])->name('admin.arsip.index');
     Route::post('/arsip/upload', [ArsipSuratController::class, 'store'])->name('admin.arsip.store');
     Route::get('/arsip/{arsip}/download', [ArsipSuratController::class, 'download'])->name('admin.arsip.download');
