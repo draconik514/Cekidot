@@ -947,7 +947,9 @@
     <div class="tahun-items" id="tahunItems">
         @foreach(range(2025, 2030) as $t)
             @php
-                $count = App\Models\DokumenIki::where('tahun', $t)->where('status', 'aktif')->count();
+                $count = App\Models\DokumenIki::where('tahun', $t)->where('status', 'aktif')
+                    ->when($is_admin_bidang, fn($q) => $q->where('bidang_id', auth()->user()->bidang_id))
+                    ->count();
                 $is_active = $t == $tahun_aktif;
             @endphp
             <a href="{{ route('admin.iki.index', ['tahun' => $t]) }}" class="tahun-item {{ $is_active ? 'active' : '' }}" data-year="{{ $t }}">
@@ -973,6 +975,15 @@
     </button>
 </div>
 
+<!-- Filter Kategori -->
+<div class="filter-kategori" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;">
+    <span style="font-size:13px;color:#64748b;font-weight:600;"><i class="fas fa-folder"></i> Kategori:</span>
+    <a href="{{ route('admin.iki.index', ['tahun' => $tahun_aktif]) }}" class="badge-kategori {{ $kategori_aktif === '' ? 'active' : '' }}" style="padding:6px 14px;border-radius:20px;font-size:13px;background:#f1f5f9;color:#475569;text-decoration:none;">Semua</a>
+    @foreach($kategori_list as $k)
+    <a href="{{ route('admin.iki.index', ['tahun' => $tahun_aktif, 'kategori' => $k]) }}" class="badge-kategori {{ $kategori_aktif === $k ? 'active' : '' }}" style="padding:6px 14px;border-radius:20px;font-size:13px;background:#f1f5f9;color:#475569;text-decoration:none;"><i class="fas fa-folder" style="color:#eab308;"></i> {{ $k }}</a>
+    @endforeach
+</div>
+
 <!-- Upload Form -->
 <div class="upload-form">
     <form method="post" enctype="multipart/form-data" id="uploadForm" action="{{ route('admin.iki.store') }}">
@@ -985,6 +996,16 @@
                 <input type="text" name="judul" placeholder="Masukkan judul dokumen" required>
             </div>
             
+            <div class="form-group full-width">
+                <label>Kategori/Folder <span class="optional">(Opsional)</span></label>
+                <input type="text" name="kategori" list="kategoriOptions" placeholder="Pilih atau ketik kategori (mis. Laporan, Sertifikat, SK, dll)">
+                <datalist id="kategoriOptions">
+                    @foreach($kategori_list as $k)
+                    <option value="{{ $k }}">{{ $k }}</option>
+                    @endforeach
+                </datalist>
+            </div>
+            
             <div class="form-group">
                 <label>Tahun <span class="required">*</span></label>
                 <select name="tahun" required>
@@ -993,6 +1014,18 @@
                     @endforeach
                 </select>
             </div>
+            
+            @if(! $is_admin_bidang)
+            <div class="form-group">
+                <label>Bidang <span class="required">*</span></label>
+                <select name="bidang_id" required>
+                    <option value="">-- Pilih Bidang --</option>
+                    @foreach($bidang_list as $b)
+                    <option value="{{ $b->id }}" {{ auth()->user()->bidang_id == $b->id ? 'selected' : '' }}>{{ $b->nama_bidang }}</option>
+                    @endforeach
+                </select>
+            </div>
+            @endif
             
             <div class="form-group">
                 <label>Tipe Konten <span class="required">*</span></label>
@@ -1054,8 +1087,10 @@
             <tr>
                 <th style="width:35px;">#</th>
                 <th>Judul</th>
+                <th style="width:140px;">Kategori</th>
                 <th style="width:80px;">Tahun</th>
                 <th style="width:90px;">Tipe</th>
+                <th style="width:140px;">Bidang</th>
                 <th style="width:80px;">Status</th>
                 <th style="width:130px;">Aksi</th>
             </tr>
@@ -1063,7 +1098,7 @@
         <tbody>
             @if($dokumen->isEmpty())
             <tr>
-                <td colspan="6">
+                <td colspan="7">
                     <div class="empty-state">
                         <i class="fas fa-file-alt"></i>
                         <h3>Belum Ada Dokumen</h3>
@@ -1082,6 +1117,15 @@
                     <div style="font-size:12px; color:#64748b;">{{ substr($d->deskripsi, 0, 50) }}{{ strlen($d->deskripsi) > 50 ? '...' : '' }}</div>
                     @endif
                 </td>
+                <td>
+                    @if($d->kategori)
+                    <span style="background:#fef9c3; color:#854d0e; padding:2px 12px; border-radius:12px; font-size:13px; border:1px solid #fde047;">
+                        <i class="fas fa-folder" style="font-size:11px;"></i> {{ $d->kategori }}
+                    </span>
+                    @else
+                    <span style="color:#94a3b8; font-size:13px;">-</span>
+                    @endif
+                </td>
                 <td><span style="background:#f1f5f9; padding:2px 12px; border-radius:12px; font-size:13px;">{{ $d->tahun }}</span></td>
                 <td>
                     <span class="type-badge {{ $d->tipe_konten ?? 'file' }}">
@@ -1091,6 +1135,11 @@
                     @if(($d->tipe_konten ?? 'file') == 'file' && !empty($d->file_type))
                     <span style="font-size:10px; color:#94a3b8; display:block;">.{{ strtoupper($d->file_type) }}</span>
                     @endif
+                </td>
+                <td>
+                    <span style="background:#f0fdf4; color:#166534; padding:2px 12px; border-radius:12px; font-size:13px; border:1px solid #bbf7d0;">
+                        {{ $d->bidang?->nama_bidang ?? '-' }}
+                    </span>
                 </td>
                 <td>
                     <span class="status-badge {{ $d->status ?? 'aktif' }}">
@@ -1103,6 +1152,7 @@
                         <button class="btn-action btn-edit" onclick="openEditModal(
                             '{{ $d->id }}',
                             '{{ addslashes($d->judul) }}',
+                            '{{ addslashes($d->kategori ?? '') }}',
                             '{{ addslashes($d->deskripsi ?? '') }}',
                             '{{ $d->tahun }}',
                             '{{ $d->tipe_konten ?? 'file' }}',

@@ -17,10 +17,11 @@
     <nav class="sidebar-nav">
         <ul class="nav-list">
             <li>
-                <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                <a href="{{ auth()->user()?->isAdminBidang() ? route('admin.arsip.index') : route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') || request()->routeIs('admin.arsip.index') ? 'active' : '' }}">
                     <i class="fas fa-home"></i><span>Dashboard</span>
                 </a>
             </li>
+            @if(! auth()->user()?->isAdminBidang())
             <li>
                 <a href="{{ route('admin.slider.index') }}" class="{{ request()->routeIs('admin.slider.*') ? 'active' : '' }}">
                     <i class="fas fa-images"></i><span>Slider</span>
@@ -79,6 +80,33 @@
                 </a>
             </li>
             @endif
+            @else
+            <li>
+                <a href="{{ route('admin.iki.index') }}" class="{{ request()->routeIs('admin.iki.*') ? 'active' : '' }}">
+                    <i class="fas fa-user-check"></i><span>Dokumen IKI</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('admin.iku.index') }}" class="{{ request()->routeIs('admin.iku.*') ? 'active' : '' }}">
+                    <i class="fas fa-chart-line"></i><span>IKU</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('admin.folder.index') }}" class="{{ request()->routeIs('admin.folder.*') ? 'active' : '' }}">
+                    <i class="fas fa-folder"></i><span>Folder Dokumen</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('admin.anggota.index') }}" class="{{ request()->routeIs('admin.anggota.*') ? 'active' : '' }}">
+                    <i class="fas fa-user-plus"></i><span>Kelola Anggota</span>
+                </a>
+            </li>
+            @endif
+            <li>
+                <a href="{{ route('admin.arsip.index') }}" class="{{ request()->routeIs('admin.arsip.*') ? 'active' : '' }}">
+                    <i class="fas fa-archive"></i><span>Arsip Surat</span>
+                </a>
+            </li>
             <li class="nav-divider"></li>
             <li class="nav-logout">
                 <a href="{{ route('logout') }}">

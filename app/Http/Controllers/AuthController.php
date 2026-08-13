@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
@@ -23,10 +23,25 @@ class AuthController extends Controller
 
         if (Auth::attempt(['username' => $credentials['username'], 'password' => $credentials['password']])) {
             $request->session()->regenerate();
-            $role = Auth::user()->role;
+
+            $user = Auth::user();
+
+            if (! $user->is_active) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->with('error', 'Akun anda dinonaktifkan. Hubungi Super Admin.');
+            }
+
+            $role = $user->role;
             if ($role === 'anggota') {
                 return redirect()->route('anggota.dashboard')->with('success', 'Login berhasil!');
             }
+            if ($role === 'admin_bidang') {
+                return redirect()->route('admin.arsip.index')->with('success', 'Login berhasil!');
+            }
+
             return redirect()->route('admin.dashboard')->with('success', 'Login berhasil!');
         }
 
@@ -38,6 +53,7 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect('/');
     }
 
@@ -47,8 +63,10 @@ class AuthController extends Controller
         if ($user) {
             $user->password = Hash::make('password');
             $user->save();
+
             return view('auth.reset-password')->with('success', 'Password berhasil direset!');
         }
+
         return view('auth.reset-password')->with('error', 'User admin tidak ditemukan!');
     }
 }

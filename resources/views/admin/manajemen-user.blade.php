@@ -43,9 +43,19 @@
                 @if(auth()->user()->isSuperAdmin())
                 <div class="form-group">
                     <label>Role</label>
-                    <select name="role" class="form-control">
+                    <select name="role" class="form-control" id="addRoleSelect" onchange="toggleRoleFields()">
                         <option value="anggota">Anggota</option>
                         <option value="admin_divisi">Admin Divisi</option>
+                        <option value="admin_bidang">Admin Bidang</option>
+                    </select>
+                </div>
+                <div class="form-group" id="addBidangGroup" style="display:none">
+                    <label>Bidang <span class="required">*</span></label>
+                    <select name="bidang_id" class="form-control">
+                        <option value="">-- Pilih Bidang --</option>
+                        @foreach($bidang_list as $b)
+                        <option value="{{ $b->id }}">{{ $b->nama_bidang }}</option>
+                        @endforeach
                     </select>
                 </div>
                 @endif
@@ -60,19 +70,37 @@
     <div class="card-body">
         <table class="data-table">
             <thead>
-                <tr><th>Nama</th><th>Username</th><th>Divisi</th><th>Role</th><th>Aksi</th></tr>
+                <tr><th>Nama</th><th>Username</th><th>Divisi/Bidang</th><th>Role</th><th>Status</th><th>Aksi</th></tr>
             </thead>
             <tbody>
                 @foreach($users as $u)
                 <tr>
                     <td>{{ $u->nama_admin }}</td>
                     <td>{{ $u->username }}</td>
-                    <td>{{ $u->divisi ?? '-' }}</td>
+                    <td>
+                        @if($u->role === 'admin_bidang')
+                        {{ $u->bidang?->nama_bidang ?? '-' }}
+                        @else
+                        {{ $u->divisi ?? '-' }}
+                        @endif
+                    </td>
                     <td><span class="badge-role {{ $u->role }}">{{ str_replace('_', ' ', $u->role) }}</span></td>
                     <td>
-                        <button class="btn btn-sm btn-warning" onclick="editUser({{ $u->id }}, '{{ $u->nama_admin }}', '{{ $u->username }}', '{{ $u->email }}', '{{ $u->divisi }}', '{{ $u->role }}')">
+                        @if($u->is_active)
+                        <span class="badge-role aktif">Aktif</span>
+                        @else
+                        <span class="badge-role nonaktif">Nonaktif</span>
+                        @endif
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" onclick="editUser({{ $u->id }}, '{{ $u->nama_admin }}', '{{ $u->username }}', '{{ $u->email }}', '{{ $u->divisi }}', '{{ $u->role }}', {{ $u->bidang_id ?? 'null' }})">
                             <i class="fas fa-edit"></i>
                         </button>
+                        @if(auth()->user()->isSuperAdmin())
+                        <a href="{{ route('admin.users.toggle', $u->id) }}" class="btn btn-sm {{ $u->is_active ? 'btn-secondary' : 'btn-success' }}" onclick="return confirm('{{ $u->is_active ? 'Nonaktifkan' : 'Aktifkan' }} akun ini?')">
+                            <i class="fas {{ $u->is_active ? 'fa-user-slash' : 'fa-user-check' }}"></i>
+                        </a>
+                        @endif
                         <a href="{{ route('admin.users.destroy', $u->id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Hapus user ini?')">
                             <i class="fas fa-trash"></i>
                         </a>
@@ -117,9 +145,19 @@
             @if(auth()->user()->isSuperAdmin())
             <div class="form-group">
                 <label>Role</label>
-                <select name="role" id="edit_role" class="form-control">
+                <select name="role" id="edit_role" class="form-control" onchange="toggleEditRoleFields()">
                     <option value="anggota">Anggota</option>
                     <option value="admin_divisi">Admin Divisi</option>
+                    <option value="admin_bidang">Admin Bidang</option>
+                </select>
+            </div>
+            <div class="form-group" id="editBidangGroup" style="display:none">
+                <label>Bidang <span class="required">*</span></label>
+                <select name="bidang_id" id="edit_bidang_id" class="form-control">
+                    <option value="">-- Pilih Bidang --</option>
+                    @foreach($bidang_list as $b)
+                    <option value="{{ $b->id }}">{{ $b->nama_bidang }}</option>
+                    @endforeach
                 </select>
             </div>
             @endif
@@ -134,15 +172,32 @@
 
 @section('scripts')
 <script>
-function editUser(id, nama, username, email, divisi, role) {
+function editUser(id, nama, username, email, divisi, role, bidang_id) {
     document.getElementById('edit_nama').value = nama;
     document.getElementById('edit_username').value = username;
     document.getElementById('edit_email').value = email;
     document.getElementById('edit_divisi').value = divisi;
     var roleEl = document.getElementById('edit_role');
-    if (roleEl) roleEl.value = role;
+    if (roleEl) {
+        roleEl.value = role || 'anggota';
+        var bidIdEl = document.getElementById('edit_bidang_id');
+        if (bidIdEl && bidang_id) bidIdEl.value = bidang_id;
+        toggleEditRoleFields();
+    }
     document.getElementById('formEdit').action = '/admin/users/' + id;
     document.getElementById('modalEdit').style.display = 'flex';
+}
+
+function toggleRoleFields() {
+    var role = document.getElementById('addRoleSelect').value;
+    var bidangGroup = document.getElementById('addBidangGroup');
+    if (bidangGroup) bidangGroup.style.display = role === 'admin_bidang' ? 'block' : 'none';
+}
+
+function toggleEditRoleFields() {
+    var role = document.getElementById('edit_role').value;
+    var bidangGroup = document.getElementById('editBidangGroup');
+    if (bidangGroup) bidangGroup.style.display = role === 'admin_bidang' ? 'block' : 'none';
 }
 </script>
 @endsection

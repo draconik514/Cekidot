@@ -25,6 +25,19 @@
                         @endforeach
                     </select>
                 </div>
+                @if(auth()->user()?->isAdminBidang())
+                <input type="hidden" name="bidang_id" value="{{ auth()->user()->bidang_id }}">
+                @else
+                <div class="form-group">
+                    <label>Bidang</label>
+                    <select name="bidang_id" class="form-control">
+                        <option value="">-- Tanpa Bidang --</option>
+                        @foreach($bidang_list as $b)
+                        <option value="{{ $b->id }}">{{ $b->nama_bidang }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                @endif
                 <div class="form-group full-width">
                     <label>Deskripsi</label>
                     <input type="text" name="deskripsi" class="form-control" placeholder="Deskripsi folder (opsional)">
@@ -40,13 +53,14 @@
     <div class="card-body">
         <table class="data-table">
             <thead>
-                <tr><th>Nama Folder</th><th>Divisi</th><th>Deskripsi</th><th>Jumlah Dokumen</th><th>Dibuat Oleh</th><th>Aksi</th></tr>
+                <tr><th>Nama Folder</th><th>Divisi</th><th>Bidang</th><th>Deskripsi</th><th>Jumlah Dokumen</th><th>Dibuat Oleh</th><th>Aksi</th></tr>
             </thead>
             <tbody>
                 @foreach($folders as $folder)
                 <tr>
                     <td><i class="fas fa-folder" style="color:#eab308"></i> {{ $folder->nama }}</td>
                     <td>{{ $folder->divisi }}</td>
+                    <td>{{ $folder->bidang->nama_bidang ?? '-' }}</td>
                     <td>{{ $folder->deskripsi ?? '-' }}</td>
                     <td>{{ $folder->uploads()->count() }}</td>
                     <td>{{ $folder->pembuat->nama_admin ?? '-' }}</td>

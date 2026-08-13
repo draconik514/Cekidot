@@ -3,17 +3,25 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\IkuEkraf;
+use App\Models\IkuInfografis;
+use App\Models\IkuPdrb;
 use App\Models\IkuPenilaian;
 use App\Models\IkuWisatawan;
-use App\Models\IkuEkraf;
-use App\Models\IkuPdrb;
-use App\Models\IkuInfografis;
-use Illuminate\Support\Facades\Validator;
+use App\Models\SuratMasuk;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class IkuController extends Controller
 {
+    protected function forbidAdminBidangEdit(): void
+    {
+        if (Auth::user()->isAdminBidang()) {
+            abort(403, 'IKU bersifat view-only untuk Admin Bidang.');
+        }
+    }
+
     protected function getPredikat($capaian)
     {
         if ($capaian === null || $capaian === '') {
@@ -39,15 +47,17 @@ class IkuController extends Controller
     {
         $kategori_list = ['Makan Minum', 'Wisatawan', 'Ekraf'];
         $kategori_aktif = request('kategori', 'Makan Minum');
-        
+
         $tahun_list = ['2025', '2026', '2027', '2028', '2029', '2030'];
         $tahun_aktif = request('tahun', '2025');
-        
+
         $subkategori_wisata = request('sub', 'Nusantara');
         $subkategori_list = ['Nusantara', 'Mancanegara', 'Akumulasi'];
-        
-        $total_baru = \App\Models\SuratMasuk::where('status', 'baru')->count();
-        
+
+        $user = Auth::user();
+        $can_edit = ! $user->isAdminBidang();
+        $total_baru = SuratMasuk::where('status', 'baru')->count();
+
         // Data
         $kriteria = [];
         $ekraf_data = [];
@@ -55,9 +65,9 @@ class IkuController extends Controller
         $wisatawan_kabkota = [
             'BANGGAI KEPULAUAN', 'BANGGAI', 'MOROWALI', 'POSO', 'DONGGALA',
             'TOLI-TOLI', 'BUOL', 'PARIGI MOUTONG', 'TOJO UNA-UNA', 'SIGI',
-            'BANGGAI LAUT', 'MOROWALI UTARA', 'KOTA PALU'
+            'BANGGAI LAUT', 'MOROWALI UTARA', 'KOTA PALU',
         ];
-        
+
         if ($kategori_aktif == 'Makan Minum') {
             $kriteria = IkuPenilaian::where('kategori', $kategori_aktif)
                 ->where('tahun', $tahun_aktif)
@@ -66,16 +76,16 @@ class IkuController extends Controller
                 ->orderBy('id')
                 ->get()
                 ->toArray();
-                
+
             if (empty($kriteria)) {
                 IkuPenilaian::where('kategori', $kategori_aktif)
                     ->where('tahun', $tahun_aktif)
                     ->whereNotIn('nama_kriteria', ['Sumber Data', 'Infografis'])
                     ->delete();
-                    
+
                 $default_data = [
                     ['nama_kriteria' => 'Penyediaan Akomodasi dan Makan Minum', 'nilai' => 0],
-                    ['nama_kriteria' => 'PDRB ADHB Sulawesi Tengah', 'nilai' => 0]
+                    ['nama_kriteria' => 'PDRB ADHB Sulawesi Tengah', 'nilai' => 0],
                 ];
                 foreach ($default_data as $d) {
                     IkuPenilaian::create([
@@ -102,7 +112,7 @@ class IkuController extends Controller
                 ->orderBy('id')
                 ->get()
                 ->toArray();
-                
+
             if (empty($kriteria)) {
                 $tahun_int = (int) $tahun_aktif;
                 $nilai = 0;
@@ -124,12 +134,12 @@ class IkuController extends Controller
                         'nilai' => $nilai,
                         'bobot' => 0,
                         'target' => 0,
-                        'realisasi' => 0
-                    ]
+                        'realisasi' => 0,
+                    ],
                 ];
             }
         }
-        
+
         // Ekraf data
         if ($kategori_aktif == 'Ekraf') {
             $ekraf_data = IkuEkraf::where('kategori', $kategori_aktif)
@@ -138,7 +148,7 @@ class IkuController extends Controller
                 ->limit(10)
                 ->get()
                 ->toArray();
-                
+
             if (empty($ekraf_data)) {
                 $sektor_list = IkuEkraf::where('kategori', $kategori_aktif)
                     ->where('tahun', '2025')
@@ -146,7 +156,7 @@ class IkuController extends Controller
                     ->limit(10)
                     ->pluck('sektor')
                     ->toArray();
-                    
+
                 if (empty($sektor_list)) {
                     $sektor_list = [
                         'Industri Makanan dan Minuman (C.2)',
@@ -158,7 +168,7 @@ class IkuController extends Controller
                         'Penyediaan Makan Minum (I.2)',
                         'Informasi dan Komunikasi (J)',
                         'Jasa Perusahaan (M,N)',
-                        'Jasa Lainnya (R,S,T,U)'
+                        'Jasa Lainnya (R,S,T,U)',
                     ];
                 }
                 foreach ($sektor_list as $sektor) {
@@ -170,12 +180,12 @@ class IkuController extends Controller
                         'koofisien' => 0,
                         'nilai_bps' => 0,
                         'jumlah_rp' => 0,
-                        'hasil_penjumlahan' => 0
+                        'hasil_penjumlahan' => 0,
                     ];
                 }
             }
         }
-        
+
         // Wisatawan data
         if ($kategori_aktif == 'Wisatawan') {
             $wisatawan_data = IkuWisatawan::where('kategori', 'Wisatawan')
@@ -184,7 +194,7 @@ class IkuController extends Controller
                 ->orderBy('id')
                 ->get()
                 ->toArray();
-                
+
             if (empty($wisatawan_data)) {
                 foreach ($wisatawan_kabkota as $kab) {
                     IkuWisatawan::create([
@@ -202,33 +212,38 @@ class IkuController extends Controller
                     ->toArray();
             }
         }
-        
+
         // Infografis
         $infografis = IkuInfografis::where('kategori', $kategori_aktif)->first();
         $infografis_file = $infografis ? $infografis->file_name : '';
-        $infografis_exists = $infografis && !empty($infografis->file_name) && Storage::disk('public')->exists('uploads/iku/' . $kategori_aktif . '/' . $infografis->file_name);
-        $infografis_path = $infografis_exists ? storage_path('app/public/uploads/iku/' . $kategori_aktif . '/' . $infografis_file) : '';
-        
+        $infografis_exists = $infografis && ! empty($infografis->file_name) && Storage::disk('public')->exists('uploads/iku/'.$kategori_aktif.'/'.$infografis->file_name);
+        $infografis_path = $infografis_exists ? storage_path('app/public/uploads/iku/'.$kategori_aktif.'/'.$infografis_file) : '';
+
         // Sumber data
         $sumber = IkuPenilaian::where('kategori', $kategori_aktif)
             ->where('nama_kriteria', 'Sumber Data')
             ->first();
         $sumber_data = $sumber ? $sumber->toArray() : ['link_sumber' => '', 'file_sumber' => ''];
-        
+
         // PDRB data
         $pdrb_data = IkuPdrb::where('kategori', $kategori_aktif)
             ->where('tahun', $tahun_aktif)
             ->first();
-            
-        if (!$pdrb_data) {
+
+        if (! $pdrb_data) {
             $pdrb_data = (object) ['target' => 0, 'realitas' => 0, 'capaian' => 0];
         }
-        
+
         // Perhitungan
-        $hasil = 0; $nilai1 = 0; $nilai2 = 0;
-        $total_ekraf = 0; $pdrb_adhb_ekraf = 0; $proporsi_ekraf = 0;
-        $total_nusantara = 0; $total_mancanegara = 0;
-        
+        $hasil = 0;
+        $nilai1 = 0;
+        $nilai2 = 0;
+        $total_ekraf = 0;
+        $pdrb_adhb_ekraf = 0;
+        $proporsi_ekraf = 0;
+        $total_nusantara = 0;
+        $total_mancanegara = 0;
+
         if ($kategori_aktif == 'Ekraf') {
             foreach ($ekraf_data as $e) {
                 $total_ekraf += (float) $e['hasil_penjumlahan'];
@@ -267,7 +282,7 @@ class IkuController extends Controller
                 $hasil = round($hasil, 4);
             }
         }
-        
+
         // Format angka
         if ($kategori_aktif == 'Makan Minum') {
             $nilai1_formatted = number_format($nilai1, 2, ',', '.');
@@ -279,9 +294,9 @@ class IkuController extends Controller
             $nilai1_formatted = number_format($nilai1, 0, ',', '.');
             $nilai2_formatted = number_format($nilai2, 0, ',', '.');
         }
-        
+
         $hasil_formatted = number_format($hasil, 4, ',', '.');
-        
+
         $target_db = (float) $pdrb_data->target;
         $realitas = $hasil;
         $capaian = 0;
@@ -290,20 +305,20 @@ class IkuController extends Controller
             $capaian = round($capaian, 4);
         }
         $capaian_formatted = number_format($capaian, 2, ',', '.');
-        
+
         if ($kategori_aktif == 'Wisatawan') {
             $target_formatted = number_format($target_db, 0, ',', '.');
         } else {
             $target_formatted = number_format($target_db, 2, ',', '.');
         }
-        
+
         $total_ekraf_formatted = number_format($total_ekraf / 1000000000, 2, ',', '.');
         $pdrb_adhb_ekraf_rp = $pdrb_adhb_ekraf;
         $pdrb_adhb_ekraf_rp_formatted = number_format($pdrb_adhb_ekraf_rp, 2, ',', '.');
         $proporsi_ekraf_formatted = number_format($proporsi_ekraf, 3, ',', '.');
-        
+
         $predikat = $this->getPredikat($capaian_formatted);
-        
+
         // Total per bulan untuk wisatawan
         $total_bulan = [];
         $total_keseluruhan = 0;
@@ -319,7 +334,7 @@ class IkuController extends Controller
                 $total_keseluruhan += (float) $w['total'];
             }
         }
-        
+
         // Akumulasi data
         $akumulasi_data = [];
         if ($kategori_aktif == 'Wisatawan') {
@@ -334,17 +349,17 @@ class IkuController extends Controller
                     ->where('tahun', $tahun_aktif)
                     ->orderBy('id')
                     ->get();
-                    
+
                 foreach ($wisatawan_kabkota as $index => $kab) {
                     $akumulasi_data[] = [
                         'kabkota' => $kab,
                         'nusantara' => $data_nusantara[$index] ?? null,
-                        'mancanegara' => $data_mancanegara[$index] ?? null
+                        'mancanegara' => $data_mancanegara[$index] ?? null,
                     ];
                 }
             }
         }
-        
+
         return view('admin.iku', compact(
             'kategori_list', 'kategori_aktif',
             'tahun_list', 'tahun_aktif',
@@ -363,68 +378,73 @@ class IkuController extends Controller
             'total_nusantara', 'total_mancanegara',
             'akumulasi_data',
             'total_baru',
+            'can_edit',
             'pdrb_data'
         ));
     }
 
     public function update(Request $request)
     {
+        $this->forbidAdminBidangEdit();
+
         $kategori_aktif = $request->kategori ?? 'Makan Minum';
         $tahun_aktif = $request->tahun ?? '2025';
         $subkategori_wisata = $request->sub ?? 'Nusantara';
-        
+
         // Update nilai kriteria
         if (isset($request->nilai) && is_array($request->nilai)) {
             foreach ($request->nilai as $id => $value) {
                 $value = str_replace('.', '', $value);
                 $value = str_replace(',', '.', $value);
                 $value_clean = (float) $value;
-                
+
                 IkuPenilaian::where('id', $id)
                     ->where('kategori', $kategori_aktif)
                     ->update(['nilai' => $value_clean]);
             }
         }
-        
+
         // Update target & realisasi
         if (isset($request->target) && isset($request->realitas)) {
             $target = str_replace('.', '', $request->target);
             $target = str_replace(',', '.', $target);
             $target = (float) $target;
-            
+
             $realitas = str_replace('.', '', $request->realitas);
             $realitas = str_replace(',', '.', $realitas);
             $realitas = (float) $realitas;
-            
+
             $capaian = 0;
             if ($target > 0) {
                 $capaian = ($realitas / $target) * 100;
                 $capaian = round($capaian, 4);
             }
-            
+
             IkuPdrb::updateOrCreate(
                 ['kategori' => $kategori_aktif, 'tahun' => $tahun_aktif],
                 ['target' => $target, 'realitas' => $realitas, 'capaian' => $capaian]
             );
         }
-        
+
         // Update Ekraf
         if ($kategori_aktif == 'Ekraf' && isset($request->ekraf)) {
             IkuEkraf::where('kategori', $kategori_aktif)
                 ->where('tahun', $tahun_aktif)
                 ->delete();
-                
+
             foreach ($request->ekraf as $data) {
-                if (!isset($data['sektor'])) continue;
-                
+                if (! isset($data['sektor'])) {
+                    continue;
+                }
+
                 $koofisien = str_replace(',', '.', str_replace('.', '', $data['koofisien'] ?? '0'));
                 $nilai_bps = str_replace(',', '.', str_replace('.', '', $data['nilai_bps'] ?? '0'));
                 $koofisien = (float) $koofisien;
                 $nilai_bps = (float) $nilai_bps;
-                
+
                 $jumlah_rp = $nilai_bps * 1000000000;
                 $hasil_penjumlahan = $jumlah_rp * $koofisien;
-                
+
                 IkuEkraf::create([
                     'kategori' => $kategori_aktif,
                     'tahun' => $tahun_aktif,
@@ -436,22 +456,22 @@ class IkuController extends Controller
                 ]);
             }
         }
-        
+
         // Update PDRB ADHB Ekraf
         if (isset($request->pdrb_adhb_ekraf) && $kategori_aktif == 'Ekraf') {
             $pdrb_adhb = str_replace(',', '.', str_replace('.', '', $request->pdrb_adhb_ekraf));
             $pdrb_adhb = (float) $pdrb_adhb;
-            
+
             IkuPenilaian::updateOrCreate(
                 [
                     'kategori' => $kategori_aktif,
                     'tahun' => $tahun_aktif,
-                    'nama_kriteria' => 'PDRB ADHB Sulawesi Tengah'
+                    'nama_kriteria' => 'PDRB ADHB Sulawesi Tengah',
                 ],
                 ['nilai' => $pdrb_adhb, 'bobot' => 0, 'target' => 0, 'realisasi' => 0]
             );
         }
-        
+
         // Update Wisatawan
         if ($kategori_aktif == 'Wisatawan' && isset($request->wisatawan)) {
             foreach ($request->wisatawan as $id => $data) {
@@ -460,11 +480,11 @@ class IkuController extends Controller
                     $values[$month] = (float) str_replace('.', '', trim($data[$month] ?? '0'));
                 }
                 $total = array_sum($values);
-                
+
                 IkuWisatawan::where('id', $id)->update(array_merge($values, ['total' => $total]));
             }
         }
-        
+
         // Update sumber data
         if (isset($request->link_sumber)) {
             IkuPenilaian::updateOrCreate(
@@ -472,39 +492,39 @@ class IkuController extends Controller
                 ['link_sumber' => $request->link_sumber]
             );
         }
-        
+
         // Upload file sumber
         if ($request->hasFile('file_sumber')) {
             $allowed = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png'];
             $max_size = 10 * 1024 * 1024;
-            
+
             $existing = IkuPenilaian::where('kategori', $kategori_aktif)
                 ->where('nama_kriteria', 'Sumber Data')
                 ->first();
             $old_files = $existing && $existing->file_sumber ? explode('|', $existing->file_sumber) : [];
-            
+
             $uploaded_files = [];
             foreach ($request->file('file_sumber') as $file) {
                 if ($file->isValid()) {
                     $ext = $file->getClientOriginalExtension();
                     if (in_array($ext, $allowed) && $file->getSize() <= $max_size) {
-                        $file_name = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
-                        $file->storeAs('uploads/iku/' . $kategori_aktif, $file_name, 'public');
+                        $file_name = time().'_'.preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
+                        $file->storeAs('uploads/iku/'.$kategori_aktif, $file_name, 'public');
                         $uploaded_files[] = $file_name;
                     }
                 }
             }
-            
+
             $all_files = array_merge($old_files, $uploaded_files);
             $all_files = array_slice($all_files, 0, 15);
             $file_names = implode('|', $all_files);
-            
+
             IkuPenilaian::updateOrCreate(
                 ['kategori' => $kategori_aktif, 'nama_kriteria' => 'Sumber Data'],
                 ['file_sumber' => $file_names]
             );
         }
-        
+
         return redirect()->route('admin.iku.index', [
             'kategori' => $kategori_aktif,
             'tahun' => $tahun_aktif,
@@ -514,46 +534,50 @@ class IkuController extends Controller
 
     public function uploadInfografis(Request $request)
     {
+        $this->forbidAdminBidangEdit();
+
         $kategori = $request->kategori ?? 'Makan Minum';
-        
+
         if ($request->hasFile('infografis')) {
             $file = $request->file('infografis');
             $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
             $ext = $file->getClientOriginalExtension();
-            
+
             if (in_array($ext, $allowed) && $file->getSize() <= 5 * 1024 * 1024) {
-                Storage::disk('public')->delete('uploads/iku/' . $kategori . '/' . $existing->file_name);
-                
-                $file_name = 'infografis_' . $kategori . '_' . time() . '.' . $ext;
-                $file->storeAs('uploads/iku/' . $kategori, $file_name, 'public');
-                
+                Storage::disk('public')->delete('uploads/iku/'.$kategori.'/'.$existing->file_name);
+
+                $file_name = 'infografis_'.$kategori.'_'.time().'.'.$ext;
+                $file->storeAs('uploads/iku/'.$kategori, $file_name, 'public');
+
                 IkuInfografis::updateOrCreate(
                     ['kategori' => $kategori],
                     ['file_name' => $file_name]
                 );
-                
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Infografis berhasil diupload!',
-                    'file_path' => Storage::disk('public')->url('uploads/iku/' . $kategori . '/' . $file_name),
+                    'file_path' => Storage::disk('public')->url('uploads/iku/'.$kategori.'/'.$file_name),
                     'file_name' => $file_name,
                 ]);
             }
         }
-        
+
         return response()->json(['success' => false, 'message' => 'Upload gagal!']);
     }
 
     public function deleteInfografis(Request $request)
     {
+        $this->forbidAdminBidangEdit();
+
         $kategori = $request->kategori ?? 'Makan Minum';
-        
+
         $infografis = IkuInfografis::where('kategori', $kategori)->first();
         if ($infografis && $infografis->file_name) {
-            Storage::disk('public')->delete('uploads/iku/' . $kategori . '/' . $infografis->file_name);
+            Storage::disk('public')->delete('uploads/iku/'.$kategori.'/'.$infografis->file_name);
             $infografis->delete();
         }
-        
+
         return redirect()->route('admin.iku.index', [
             'kategori' => $kategori,
             'tahun' => $request->tahun ?? '2025',
@@ -563,24 +587,26 @@ class IkuController extends Controller
 
     public function deleteFile(Request $request)
     {
+        $this->forbidAdminBidangEdit();
+
         $kategori = $request->kategori ?? 'Makan Minum';
         $filename = $request->filename;
-        
+
         $sumber = IkuPenilaian::where('kategori', $kategori)
             ->where('nama_kriteria', 'Sumber Data')
             ->first();
-            
+
         if ($sumber && $sumber->file_sumber) {
             $files = explode('|', $sumber->file_sumber);
-            $new_files = array_filter($files, function($f) use ($filename) {
+            $new_files = array_filter($files, function ($f) use ($filename) {
                 return $f !== $filename;
             });
-            
-            Storage::disk('public')->delete('uploads/iku/' . $kategori . '/' . $filename);
-            
+
+            Storage::disk('public')->delete('uploads/iku/'.$kategori.'/'.$filename);
+
             $sumber->update(['file_sumber' => implode('|', $new_files)]);
         }
-        
+
         return redirect()->route('admin.iku.index', [
             'kategori' => $kategori,
             'tahun' => $request->tahun ?? '2025',

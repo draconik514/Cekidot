@@ -3,30 +3,53 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\Bidang;
 use App\Models\DokumenIki;
-use Illuminate\Support\Facades\Validator;
+use App\Models\SuratMasuk;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class DokumenIkiController extends Controller
 {
     public function index()
     {
+        $user = Auth::user();
         $tahun_list = range(2025, 2030);
         $tahun_aktif = request('tahun', date('Y'));
-        
-        if (!in_array((int)$tahun_aktif, $tahun_list)) {
+
+        if (! in_array((int) $tahun_aktif, $tahun_list)) {
             $tahun_aktif = $tahun_list[0];
         }
-        
-        $dokumen = DokumenIki::where('tahun', $tahun_aktif)->orderBy('urutan')->get();
-        $total_baru = \App\Models\SuratMasuk::where('status', 'baru')->count();
-        
-        return view('admin.iki', compact('dokumen', 'tahun_aktif', 'tahun_list', 'total_baru'));
+
+        $query = DokumenIki::with('bidang')->where('tahun', $tahun_aktif);
+
+        if ($user->isAdminBidang()) {
+            $query->where('bidang_id', $user->bidang_id);
+        }
+
+        $kategori_aktif = request('kategori', '');
+        if ($kategori_aktif !== '') {
+            $query->where('kategori', $kategori_aktif);
+        }
+
+        $dokumen = $query->orderBy('urutan')->get();
+        $total_baru = SuratMasuk::where('status', 'baru')->count();
+        $bidang_list = Bidang::orderBy('nama_bidang')->get();
+        $is_admin_bidang = $user->isAdminBidang();
+        $kategori_list = DokumenIki::where('kategori', '!=', '')->whereNotNull('kategori')
+            ->distinct('kategori')
+            ->orderBy('kategori')
+            ->pluck('kategori');
+
+        return view('admin.iki', compact('dokumen', 'tahun_aktif', 'tahun_list', 'total_baru', 'bidang_list', 'is_admin_bidang', 'kategori_list', 'kategori_aktif'));
     }
 
     public function store(Request $request)
     {
+        $user = Auth::user();
+
         $validator = Validator::make($request->all(), [
             'judul' => 'required|string',
             'tahun' => 'required|integer',
@@ -55,13 +78,15 @@ class DokumenIkiController extends Controller
             }
         }
 
+        $bidangId = $user->isAdminBidang() ? $user->bidang_id : $request->bidang_id;
+
         $file_name = '';
         $file_type = '';
         $file_size = 0;
 
         if ($request->hasFile('file_dokumen')) {
             $file = $request->file('file_dokumen');
-            $file_name = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
+            $file_name = time().'_'.preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
             $file->storeAs('uploads/iki', $file_name, 'public');
             $file_type = $file->getClientOriginalExtension();
             $file_size = $file->getSize();
@@ -71,6 +96,7 @@ class DokumenIkiController extends Controller
 
         DokumenIki::create([
             'judul' => $request->judul,
+            'kategori' => $request->kategori ?? null,
             'deskripsi' => $request->deskripsi,
             'file_dokumen' => $file_name,
             'tipe_konten' => $request->tipe_konten,
@@ -78,6 +104,7 @@ class DokumenIkiController extends Controller
             'file_type' => $file_type,
             'file_size' => $file_size,
             'tahun' => $request->tahun,
+            'bidang_id' => $bidangId,
             'urutan' => $max_urutan + 1,
             'status' => 'aktif',
         ]);
@@ -88,8 +115,13 @@ class DokumenIkiController extends Controller
 
     public function update(Request $request)
     {
+        $user = Auth::user();
         $id = $request->edit_id;
         $dokumen = DokumenIki::findOrFail($id);
+
+        if ($user->isAdminBidang() && $dokumen->bidang_id !== $user->bidang_id) {
+            abort(403, 'Anda hanya dapat mengelola dokumen bidang Anda.');
+        }
 
         $validator = Validator::make($request->all(), [
             'edit_judul' => 'required|string',
@@ -103,10 +135,15 @@ class DokumenIkiController extends Controller
 
         $data = [
             'judul' => $request->edit_judul,
+            'kategori' => $request->edit_kategori ?? null,
             'deskripsi' => $request->edit_deskripsi,
             'tahun' => $request->edit_tahun,
             'tipe_konten' => $request->edit_tipe_konten,
         ];
+
+        if ($user->isAdminBidang()) {
+            $data['bidang_id'] = $user->bidang_id;
+        }
 
         if ($request->edit_tipe_konten == 'link') {
             $validator = Validator::make($request->all(), [
@@ -119,13 +156,13 @@ class DokumenIkiController extends Controller
             $data['file_dokumen'] = null;
             $data['file_type'] = '';
             $data['file_size'] = 0;
-            
+
             if ($dokumen->file_dokumen && $dokumen->tipe_konten == 'file') {
-                Storage::disk('public')->delete('uploads/iki/' . $dokumen->file_dokumen);
+                Storage::disk('public')->delete('uploads/iki/'.$dokumen->file_dokumen);
             }
         } else {
             $data['link_url'] = null;
-            
+
             if ($request->hasFile('edit_file')) {
                 $file = $request->file('edit_file');
                 $validator = Validator::make($request->all(), [
@@ -134,10 +171,10 @@ class DokumenIkiController extends Controller
                 if ($validator->fails()) {
                     return back()->with('error', 'Ukuran file maksimal 50MB!')->withInput();
                 }
-                
-                Storage::disk('public')->delete('uploads/iki/' . $dokumen->file_dokumen);
-                
-                $file_name = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
+
+                Storage::disk('public')->delete('uploads/iki/'.$dokumen->file_dokumen);
+
+                $file_name = time().'_'.preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
                 $file->storeAs('uploads/iki', $file_name, 'public');
                 $data['file_dokumen'] = $file_name;
                 $data['file_type'] = $file->getClientOriginalExtension();
@@ -159,21 +196,34 @@ class DokumenIkiController extends Controller
 
     public function destroy($id)
     {
+        $user = Auth::user();
         $dokumen = DokumenIki::findOrFail($id);
-        
-        if ($dokumen->tipe_konten == 'file' && $dokumen->file_dokumen) {
-            Storage::disk('public')->delete('uploads/iki/' . $dokumen->file_dokumen);
+
+        if ($user->isAdminBidang() && $dokumen->bidang_id !== $user->bidang_id) {
+            abort(403, 'Anda hanya dapat mengelola dokumen bidang Anda.');
         }
-        
+
+        if ($dokumen->tipe_konten == 'file' && $dokumen->file_dokumen) {
+            Storage::disk('public')->delete('uploads/iki/'.$dokumen->file_dokumen);
+        }
+
         $dokumen->delete();
+
         return redirect()->route('admin.iki.index')->with('success', 'Dokumen berhasil dihapus!');
     }
 
     public function toggleStatus($id)
     {
+        $user = Auth::user();
         $dokumen = DokumenIki::findOrFail($id);
+
+        if ($user->isAdminBidang() && $dokumen->bidang_id !== $user->bidang_id) {
+            abort(403, 'Anda hanya dapat mengelola dokumen bidang Anda.');
+        }
+
         $new_status = $dokumen->status == 'aktif' ? 'nonaktif' : 'aktif';
         $dokumen->update(['status' => $new_status]);
+
         return redirect()->route('admin.iki.index')->with('success', 'Status dokumen berhasil diubah!');
     }
 }

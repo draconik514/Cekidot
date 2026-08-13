@@ -25,8 +25,8 @@
                 <li><a href="{{ route('monev.public') }}" class="{{ request()->routeIs('monev.public') ? 'active' : '' }}"><i class="fas fa-chart-pie"></i> Monev</a></li>
                 <li>
                     <a href="{{ route('login') }}" class="btn-login-nav">
-                        <i class="fas fa-user-shield"></i>
-                        <span>Admin</span>
+                        <i class="fas fa-arrow-right-to-bracket"></i>
+                        <span>Login</span>
                     </a>
                 </li>
             </ul>
