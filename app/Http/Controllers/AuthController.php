@@ -26,20 +26,9 @@ class AuthController extends Controller
 
             $user = Auth::user();
 
-            if (! $user->is_active) {
-                Auth::logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-
-                return back()->with('error', 'Akun anda dinonaktifkan. Hubungi Super Admin.');
-            }
-
             $role = $user->role;
             if ($role === 'anggota') {
                 return redirect()->route('anggota.dashboard')->with('success', 'Login berhasil!');
-            }
-            if ($role === 'admin_bidang') {
-                return redirect()->route('admin.arsip.index')->with('success', 'Login berhasil!');
             }
 
             return redirect()->route('admin.dashboard')->with('success', 'Login berhasil!');
