@@ -11,7 +11,7 @@ class ArsipSurat extends Model
     protected $table = 'arsip_surat';
 
     protected $fillable = [
-        'bidang_id',
+        'divisi',
         'nomor_surat',
         'tanggal_surat',
         'perihal',
@@ -37,11 +37,6 @@ class ArsipSurat extends Model
     public function scopeAktif(Builder $query): Builder
     {
         return $query->where('is_deleted', false);
-    }
-
-    public function bidang(): BelongsTo
-    {
-        return $this->belongsTo(Bidang::class);
     }
 
     public function uploader(): BelongsTo
