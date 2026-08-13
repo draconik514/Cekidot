@@ -10,11 +10,6 @@ class DokumenIki extends Model
 
     protected $fillable = [
         'judul', 'kategori', 'deskripsi', 'file_dokumen', 'tipe_konten',
-        'link_url', 'file_type', 'file_size', 'tahun', 'bidang_id', 'urutan', 'status',
+        'link_url', 'file_type', 'file_size', 'tahun', 'divisi', 'urutan', 'status',
     ];
-
-    public function bidang()
-    {
-        return $this->belongsTo(Bidang::class);
-    }
 }

@@ -17,8 +17,6 @@ class User extends Authenticatable
         'email',
         'role',
         'divisi',
-        'bidang_id',
-        'is_active',
     ];
 
     public function isSuperAdmin(): bool
@@ -33,7 +31,7 @@ class User extends Authenticatable
 
     public function isAdminBidang(): bool
     {
-        return $this->role === 'admin_bidang';
+        return false; // diganti sistem divisi
     }
 
     public function isAnggota(): bool
@@ -51,15 +49,6 @@ class User extends Authenticatable
         return $this->hasMany(FolderDokumen::class, 'created_by');
     }
 
-    public function bidang()
-    {
-        return $this->belongsTo(Bidang::class);
-    }
-
-    public function arsipSurat()
-    {
-        return $this->hasMany(ArsipSurat::class, 'uploaded_by');
-    }
 
     protected $hidden = [
         'password',
@@ -70,7 +59,6 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
-            'is_active' => 'boolean',
         ];
     }
 }

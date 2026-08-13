@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Bidang;
 use App\Models\DokumenIki;
 use App\Models\SuratMasuk;
 use Illuminate\Http\Request;
@@ -23,10 +22,10 @@ class DokumenIkiController extends Controller
             $tahun_aktif = $tahun_list[0];
         }
 
-        $query = DokumenIki::with('bidang')->where('tahun', $tahun_aktif);
+        $query = DokumenIki::where('tahun', $tahun_aktif);
 
-        if ($user->isAdminBidang()) {
-            $query->where('bidang_id', $user->bidang_id);
+        if ($user->isAdminDivisi()) {
+            $query->where('divisi', $user->divisi);
         }
 
         $kategori_aktif = request('kategori', '');
@@ -35,15 +34,15 @@ class DokumenIkiController extends Controller
         }
 
         $dokumen = $query->orderBy('urutan')->get();
-        $total_baru = SuratMasuk::where('status', 'baru')->count();
-        $bidang_list = Bidang::orderBy('nama_bidang')->get();
-        $is_admin_bidang = $user->isAdminBidang();
+        $total_baru = 0;
+        $divisi_list = ['Kepegawaian','Program','Keuangan','Ekraf','Destinasi','Pemasaran','Sdm'];
+        $is_admin_divisi = $user->isAdminDivisi();
         $kategori_list = DokumenIki::where('kategori', '!=', '')->whereNotNull('kategori')
             ->distinct('kategori')
             ->orderBy('kategori')
             ->pluck('kategori');
 
-        return view('admin.iki', compact('dokumen', 'tahun_aktif', 'tahun_list', 'total_baru', 'bidang_list', 'is_admin_bidang', 'kategori_list', 'kategori_aktif'));
+        return view('admin.iki', compact('dokumen', 'tahun_aktif', 'tahun_list', 'total_baru', 'divisi_list', 'is_admin_divisi', 'kategori_list', 'kategori_aktif'));
     }
 
     public function store(Request $request)
@@ -78,7 +77,7 @@ class DokumenIkiController extends Controller
             }
         }
 
-        $bidangId = $user->isAdminBidang() ? $user->bidang_id : $request->bidang_id;
+        $divisi = $user->isAdminDivisi() ? $user->divisi : $request->divisi;
 
         $file_name = '';
         $file_type = '';
@@ -104,7 +103,7 @@ class DokumenIkiController extends Controller
             'file_type' => $file_type,
             'file_size' => $file_size,
             'tahun' => $request->tahun,
-            'bidang_id' => $bidangId,
+            'divisi' => $divisi,
             'urutan' => $max_urutan + 1,
             'status' => 'aktif',
         ]);
@@ -119,8 +118,8 @@ class DokumenIkiController extends Controller
         $id = $request->edit_id;
         $dokumen = DokumenIki::findOrFail($id);
 
-        if ($user->isAdminBidang() && $dokumen->bidang_id !== $user->bidang_id) {
-            abort(403, 'Anda hanya dapat mengelola dokumen bidang Anda.');
+        if ($user->isAdminDivisi() && $dokumen->divisi !== $user->divisi) {
+            abort(403, 'Anda hanya dapat mengelola dokumen divisi Anda.');
         }
 
         $validator = Validator::make($request->all(), [
@@ -141,8 +140,8 @@ class DokumenIkiController extends Controller
             'tipe_konten' => $request->edit_tipe_konten,
         ];
 
-        if ($user->isAdminBidang()) {
-            $data['bidang_id'] = $user->bidang_id;
+        if ($user->isAdminDivisi()) {
+            $data['divisi'] = $user->divisi;
         }
 
         if ($request->edit_tipe_konten == 'link') {
@@ -199,8 +198,8 @@ class DokumenIkiController extends Controller
         $user = Auth::user();
         $dokumen = DokumenIki::findOrFail($id);
 
-        if ($user->isAdminBidang() && $dokumen->bidang_id !== $user->bidang_id) {
-            abort(403, 'Anda hanya dapat mengelola dokumen bidang Anda.');
+        if ($user->isAdminDivisi() && $dokumen->divisi !== $user->divisi) {
+            abort(403, 'Anda hanya dapat mengelola dokumen divisi Anda.');
         }
 
         if ($dokumen->tipe_konten == 'file' && $dokumen->file_dokumen) {
@@ -217,8 +216,8 @@ class DokumenIkiController extends Controller
         $user = Auth::user();
         $dokumen = DokumenIki::findOrFail($id);
 
-        if ($user->isAdminBidang() && $dokumen->bidang_id !== $user->bidang_id) {
-            abort(403, 'Anda hanya dapat mengelola dokumen bidang Anda.');
+        if ($user->isAdminDivisi() && $dokumen->divisi !== $user->divisi) {
+            abort(403, 'Anda hanya dapat mengelola dokumen divisi Anda.');
         }
 
         $new_status = $dokumen->status == 'aktif' ? 'nonaktif' : 'aktif';
