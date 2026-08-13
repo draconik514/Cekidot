@@ -3,8 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Bidang;
-use App\Models\SuratMasuk;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,12 +19,10 @@ class ManajemenUserController extends Controller
             $query->where('divisi', $user->divisi)->where('role', 'anggota');
         }
 
-        $users = $query->with('bidang')->orderBy('divisi')->orderBy('nama_admin')->get();
-        $total_baru = SuratMasuk::where('status', 'baru')->count();
+        $users = $query->orderBy('divisi')->orderBy('nama_admin')->get();
         $divisi_list = ['Kepegawaian', 'Program', 'Keuangan', 'Ekraf', 'Destinasi', 'Pemasaran', 'Sdm'];
-        $bidang_list = Bidang::orderBy('nama_bidang')->get();
 
-        return view('admin.manajemen-user', compact('users', 'total_baru', 'divisi_list', 'bidang_list'));
+        return view('admin.manajemen-user', compact('users', 'divisi_list'));
     }
 
     public function store(Request $request)
@@ -37,25 +33,12 @@ class ManajemenUserController extends Controller
             'username' => 'required|string|unique:users,username',
             'nama_admin' => 'required|string',
             'password' => 'required|string|min:6',
+            'divisi' => 'required',
         ]);
 
-        if ($request->input('role') === 'admin_bidang') {
-            $request->validate(['bidang_id' => 'required|exists:bidang,id']);
-        } else {
-            $request->validate(['divisi' => 'required']);
-        }
-
         $role = 'anggota';
-        $divisi = $request->divisi;
-        $bidangId = null;
-
-        if ($user->isSuperAdmin()) {
-            if ($request->role === 'admin_divisi') {
-                $role = 'admin_divisi';
-            } elseif ($request->role === 'admin_bidang') {
-                $role = 'admin_bidang';
-                $bidangId = $request->bidang_id;
-            }
+        if ($user->isSuperAdmin() && in_array($request->role, ['admin_divisi', 'anggota'])) {
+            $role = $request->role;
         }
 
         User::create([
@@ -64,9 +47,7 @@ class ManajemenUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $role,
-            'divisi' => $role === 'admin_bidang' ? null : $divisi,
-            'bidang_id' => $bidangId,
-            'is_active' => true,
+            'divisi' => $request->divisi,
         ]);
 
         return back()->with('success', 'Akun berhasil dibuat!');
@@ -86,14 +67,8 @@ class ManajemenUserController extends Controller
             'divisi' => $request->divisi,
         ];
 
-        if (Auth::user()->isSuperAdmin()) {
-            if ($request->input('role') === 'admin_bidang') {
-                $data['role'] = 'admin_bidang';
-                $data['bidang_id'] = $request->bidang_id;
-                $data['divisi'] = null;
-            } elseif ($request->filled('role')) {
+        if (Auth::user()->isSuperAdmin() && $request->filled('role')) {
                 $data['role'] = $request->role;
-            }
         }
 
         if ($request->filled('password')) {
@@ -110,9 +85,7 @@ class ManajemenUserController extends Controller
         if ($user->role === 'super_admin') {
             return back()->with('error', 'Tidak bisa nonaktifkan super admin!');
         }
-        $user->update(['is_active' => ! $user->is_active]);
-
-        return back()->with('success', 'Status akun berhasil diubah!');
+        return back()->with('error', 'Fitur ini tidak tersedia.');
     }
 
     public function destroy(User $user)
