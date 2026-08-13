@@ -907,7 +907,6 @@
 
 @section('content')
 @php
-    $total_baru = App\Models\SuratMasuk::where('status', 'baru')->count();
     $admin_nama = auth()->user()->nama_admin ?? 'Admin';
 @endphp
 
@@ -948,7 +947,7 @@
         @foreach(range(2025, 2030) as $t)
             @php
                 $count = App\Models\DokumenIki::where('tahun', $t)->where('status', 'aktif')
-                    ->when($is_admin_bidang, fn($q) => $q->where('bidang_id', auth()->user()->bidang_id))
+                    ->when($is_admin_divisi, fn($q) => $q->where('divisi', auth()->user()->divisi))
                     ->count();
                 $is_active = $t == $tahun_aktif;
             @endphp
@@ -1015,13 +1014,13 @@
                 </select>
             </div>
             
-            @if(! $is_admin_bidang)
+            @if(! $is_admin_divisi)
             <div class="form-group">
-                <label>Bidang <span class="required">*</span></label>
-                <select name="bidang_id" required>
-                    <option value="">-- Pilih Bidang --</option>
-                    @foreach($bidang_list as $b)
-                    <option value="{{ $b->id }}" {{ auth()->user()->bidang_id == $b->id ? 'selected' : '' }}>{{ $b->nama_bidang }}</option>
+                <label>Divisi <span class="required">*</span></label>
+                <select name="divisi" required>
+                    <option value="">-- Pilih Divisi --</option>
+                    @foreach($divisi_list as $div)
+                    <option value="{{ $div }}" {{ auth()->user()->divisi == $div ? 'selected' : '' }}>{{ $div }}</option>
                     @endforeach
                 </select>
             </div>
@@ -1090,7 +1089,7 @@
                 <th style="width:140px;">Kategori</th>
                 <th style="width:80px;">Tahun</th>
                 <th style="width:90px;">Tipe</th>
-                <th style="width:140px;">Bidang</th>
+                <th style="width:140px;">Divisi</th>
                 <th style="width:80px;">Status</th>
                 <th style="width:130px;">Aksi</th>
             </tr>
@@ -1138,7 +1137,7 @@
                 </td>
                 <td>
                     <span style="background:#f0fdf4; color:#166534; padding:2px 12px; border-radius:12px; font-size:13px; border:1px solid #bbf7d0;">
-                        {{ $d->bidang?->nama_bidang ?? '-' }}
+                        {{ $d->divisi ?? '-' }}
                     </span>
                 </td>
                 <td>
