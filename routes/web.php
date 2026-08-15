@@ -1,26 +1,27 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\IkuPublicController;
-use App\Http\Controllers\AkipPublicController;
-use App\Http\Controllers\IkiPublicController;
-use App\Http\Controllers\CapaianPublicController;
-use App\Http\Controllers\MonevPublicController;
-use App\Http\Controllers\SuratPublicController;
+use App\Http\Controllers\Admin\CapaianController;
 use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\SliderController;
-use App\Http\Controllers\Admin\SuratMasukController;
 use App\Http\Controllers\Admin\DokumenAkipController;
 use App\Http\Controllers\Admin\DokumenIkiController;
-use App\Http\Controllers\Admin\IkuController;
-use App\Http\Controllers\Admin\CapaianController;
-use App\Http\Controllers\Admin\MonevController;
-use App\Http\Controllers\Admin\ManajemenUserController;
 use App\Http\Controllers\Admin\FolderDokumenController;
+use App\Http\Controllers\Admin\IkuController;
+use App\Http\Controllers\Admin\LogAktivitasController;
+use App\Http\Controllers\Admin\ManajemenUserController;
+use App\Http\Controllers\Admin\MonevController;
+use App\Http\Controllers\Admin\SliderController;
+use App\Http\Controllers\Admin\SuratMasukController;
 use App\Http\Controllers\Admin\UploadAnggotaController;
+use App\Http\Controllers\AkipPublicController;
 use App\Http\Controllers\AnggotaController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CapaianPublicController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\IkiPublicController;
+use App\Http\Controllers\IkuPublicController;
+use App\Http\Controllers\MonevPublicController;
+use App\Http\Controllers\SuratPublicController;
+use Illuminate\Support\Facades\Route;
 
 // ============================================================
 // PUBLIC ROUTES
@@ -49,18 +50,18 @@ Route::get('/reset-password', [AuthController::class, 'resetPassword'])->name('r
 Route::prefix('anggota')->middleware(['role:anggota'])->group(function () {
     Route::get('/', [AnggotaController::class, 'dashboard'])->name('anggota.dashboard');
     Route::post('/upload', [AnggotaController::class, 'store'])->name('anggota.upload');
-    Route::get('/delete/{upload}', [AnggotaController::class, 'destroy'])->name('anggota.delete');
+    Route::get('/download/{upload}', [AnggotaController::class, 'download'])->name('anggota.download');
 });
 Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
 
     // Slider
     Route::resource('slider', SliderController::class)->except(['show'])->names([
-        'index'   => 'admin.slider.index',
-        'create'  => 'admin.slider.create',
-        'store'   => 'admin.slider.store',
-        'edit'    => 'admin.slider.edit',
-        'update'  => 'admin.slider.update',
+        'index' => 'admin.slider.index',
+        'create' => 'admin.slider.create',
+        'store' => 'admin.slider.store',
+        'edit' => 'admin.slider.edit',
+        'update' => 'admin.slider.update',
         'destroy' => 'admin.slider.destroy',
     ]);
 
@@ -115,5 +116,9 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
 
     // Upload Anggota (admin lihat)
     Route::get('/upload-anggota', [UploadAnggotaController::class, 'index'])->name('admin.upload.index');
+    Route::get('/upload-anggota/download/{upload}', [UploadAnggotaController::class, 'download'])->name('admin.upload.download');
     Route::get('/upload-anggota/{upload}/delete', [UploadAnggotaController::class, 'destroy'])->name('admin.upload.destroy');
+
+    // Log Aktivitas (Super Admin)
+    Route::get('/log-aktivitas', [LogAktivitasController::class, 'index'])->name('admin.log.index');
 });

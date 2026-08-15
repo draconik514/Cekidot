@@ -60,7 +60,7 @@
     <div class="card-body">
         <table class="data-table">
             <thead>
-                <tr><th>Tanggal</th><th>Nama Anggota</th><th>Divisi</th><th>Folder</th><th>Judul</th><th>File</th><th>Aksi</th></tr>
+                <tr><th>Tanggal</th><th>Nama Anggota</th><th>Divisi</th><th>Folder</th><th>Nama File</th><th>Jenis</th><th>Ukuran</th><th>Tindakan</th></tr>
             </thead>
             <tbody>
                 @forelse($uploads as $up)
@@ -70,23 +70,50 @@
                     <td>{{ $up->user->divisi ?? '-' }}</td>
                     <td>{{ $up->folder->nama ?? '-' }}</td>
                     <td>{{ $up->judul }}</td>
+                    <td>{{ strtoupper($up->file_type) }}</td>
+                    <td>{{ $up->ukuran }}</td>
                     <td>
-                        <a href="{{ Storage::url('uploads/anggota/' . $up->file_name) }}" target="_blank" class="btn btn-sm btn-info">
-                            <i class="fas fa-download"></i>
-                        </a>
-                    </td>
-                    <td>
-                        <a href="{{ route('admin.upload.destroy', $up->id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Hapus dokumen ini?')">
-                            <i class="fas fa-trash"></i>
-                        </a>
+                        @if($up->dapat_dipreview)
+                        <a href="javascript:void(0)" class="btn btn-sm btn-warning" onclick="openPreview('{{ Storage::url('uploads/anggota/' . $up->file_name) }}')"><i class="fas fa-eye"></i></a>
+                        @endif
+                        <a href="{{ route('admin.upload.download', $up->id) }}" class="btn btn-sm btn-info"><i class="fas fa-download"></i></a>
+                        <a href="{{ route('admin.upload.destroy', $up->id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Hapus dokumen ini?')"><i class="fas fa-trash"></i></a>
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="7" class="text-center text-muted">Belum ada dokumen.</td></tr>
+                <tr><td colspan="8" class="text-center text-muted">Belum ada dokumen.</td></tr>
                 @endforelse
             </tbody>
         </table>
         <div style="margin-top:16px">{{ $uploads->links() }}</div>
     </div>
 </div>
+
+<div class="modal" id="previewModal">
+    <div class="modal-box modal-lg">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3 style="margin:0"><i class="fas fa-eye" style="color:#eab308"></i> Pratinjau Dokumen</h3>
+            <button class="btn btn-sm btn-secondary" onclick="closePreview()">Tutup</button>
+        </div>
+        <div id="previewFrame"></div>
+    </div>
+</div>
+@endsection
+
+@section('scripts')
+<script>
+function openPreview(url) {
+    var isImage = /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url);
+    var frame = document.getElementById('previewFrame');
+    frame.innerHTML = isImage
+        ? '<img src="' + url + '" alt="Preview" style="width:100%;border-radius:8px">'
+        : '<iframe src="' + url + '" style="width:100%;height:70vh;border:0;border-radius:8px"></iframe>';
+    document.getElementById('previewModal').classList.add('show');
+}
+function closePreview() {
+    document.getElementById('previewModal').classList.remove('show');
+    document.getElementById('previewFrame').innerHTML = '';
+}
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closePreview(); });
+</script>
 @endsection

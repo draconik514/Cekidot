@@ -17,6 +17,9 @@
 
             <ul class="nav-menu" id="navMenu">
                 <li><a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'active' : '' }}"><i class="fas fa-home"></i> Beranda</a></li>
+                @auth
+                <li><a href="{{ route('anggota.dashboard') }}" class="{{ request()->routeIs('anggota.*') ? 'active' : '' }}"><i class="fas fa-folder-open"></i> Arsip</a></li>
+                @endauth
                 <li><a href="{{ route('surat.create') }}" class="{{ request()->routeIs('surat.create') ? 'active' : '' }}"><i class="fas fa-envelope"></i> Kirim Surat</a></li>
                 <li><a href="{{ route('akip.public') }}" class="{{ request()->routeIs('akip.public') ? 'active' : '' }}"><i class="fas fa-clipboard-check"></i> AKIP</a></li>
                 <li><a href="{{ route('iki.public') }}" class="{{ request()->routeIs('iki.public') ? 'active' : '' }}"><i class="fas fa-user-check"></i> IKI</a></li>
@@ -24,10 +27,17 @@
                 <li><a href="{{ route('capaian.public') }}" class="{{ request()->routeIs('capaian.public') ? 'active' : '' }}"><i class="fas fa-flag-checkered"></i> Capaian Program</a></li>
                 <li><a href="{{ route('monev.public') }}" class="{{ request()->routeIs('monev.public') ? 'active' : '' }}"><i class="fas fa-chart-pie"></i> Monev</a></li>
                 <li>
+                    @auth
+                    <a href="{{ route('logout') }}" class="btn-login-nav">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>{{ auth()->user()->nama_admin }}</span>
+                    </a>
+                    @else
                     <a href="{{ route('login') }}" class="btn-login-nav">
                         <i class="fas fa-user-shield"></i>
                         <span>Admin</span>
                     </a>
+                    @endauth
                 </li>
             </ul>
         </div>
