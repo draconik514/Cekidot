@@ -1,20 +1,13 @@
 <?php
 
-<<<<<<< HEAD
-=======
 use App\Http\Controllers\Admin\Anggota\KelolaAnggotaController;
 use App\Http\Controllers\Admin\ArsipSuratController;
->>>>>>> fd1683fb08e1dafd358aeaeb27a3fbc12f877618
 use App\Http\Controllers\Admin\CapaianController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DokumenAkipController;
 use App\Http\Controllers\Admin\DokumenIkiController;
 use App\Http\Controllers\Admin\FolderDokumenController;
 use App\Http\Controllers\Admin\IkuController;
-<<<<<<< HEAD
-use App\Http\Controllers\Admin\LogAktivitasController;
-=======
->>>>>>> fd1683fb08e1dafd358aeaeb27a3fbc12f877618
 use App\Http\Controllers\Admin\ManajemenUserController;
 use App\Http\Controllers\Admin\MonevController;
 use App\Http\Controllers\Admin\SliderController;
@@ -30,14 +23,11 @@ use App\Http\Controllers\IkuPublicController;
 use App\Http\Controllers\MonevPublicController;
 use App\Http\Controllers\SuratPublicController;
 use Illuminate\Support\Facades\Route;
-<<<<<<< HEAD
-=======
 
 // ============================================================
 // HOME — beranda publik (lihat perkembangan; aksi perlu login)
 // ============================================================
 Route::get('/', [HomeController::class, 'index'])->name('home');
->>>>>>> fd1683fb08e1dafd358aeaeb27a3fbc12f877618
 
 // ============================================================
 // PUBLIC ROUTES
@@ -140,15 +130,6 @@ Route::prefix('admin')->middleware(['role:super_admin,admin_divisi,admin_bidang'
     Route::post('/folder-dokumen/{folder}', [FolderDokumenController::class, 'update'])->name('admin.folder.update');
     Route::get('/folder-dokumen/{folder}/delete', [FolderDokumenController::class, 'destroy'])->name('admin.folder.destroy');
 
-<<<<<<< HEAD
-    // Upload Anggota (admin lihat)
-    Route::get('/upload-anggota', [UploadAnggotaController::class, 'index'])->name('admin.upload.index');
-    Route::get('/upload-anggota/download/{upload}', [UploadAnggotaController::class, 'download'])->name('admin.upload.download');
-    Route::get('/upload-anggota/{upload}/delete', [UploadAnggotaController::class, 'destroy'])->name('admin.upload.destroy');
-
-    // Log Aktivitas (Super Admin)
-    Route::get('/log-aktivitas', [LogAktivitasController::class, 'index'])->name('admin.log.index');
-=======
     // Kelola Anggota (Admin Bidang)
     Route::get('/anggota', [KelolaAnggotaController::class, 'index'])->name('admin.anggota.index');
     Route::post('/anggota', [KelolaAnggotaController::class, 'store'])->name('admin.anggota.store');
@@ -158,7 +139,7 @@ Route::prefix('admin')->middleware(['role:super_admin,admin_divisi,admin_bidang'
 });
 
 // ============================================================
-// ARSIP SURAT (Super Admin & Admin Bidang)
+// ARSIP SURAT (Super Admin & Admin Divisi)
 // ============================================================
 Route::prefix('admin')->middleware(['role:super_admin,admin_divisi'])->group(function () {
     Route::get('/arsip', [ArsipSuratController::class, 'index'])->name('admin.arsip.index');
@@ -166,5 +147,4 @@ Route::prefix('admin')->middleware(['role:super_admin,admin_divisi'])->group(fun
     Route::get('/arsip/{arsip}/download', [ArsipSuratController::class, 'download'])->name('admin.arsip.download');
     Route::post('/arsip/delete', [ArsipSuratController::class, 'destroy'])->name('admin.arsip.destroy');
     Route::get('/arsip/cetak', [ArsipSuratController::class, 'cetak'])->name('admin.arsip.cetak');
->>>>>>> fd1683fb08e1dafd358aeaeb27a3fbc12f877618
 });
