@@ -20,10 +20,9 @@ class ManajemenUserController extends Controller
         }
 
         $users = $query->orderBy('divisi')->orderBy('nama_admin')->get();
-        $total_baru = \App\Models\SuratMasuk::where('status', 'baru')->count();
         $divisi_list = ['Kepegawaian', 'Program', 'Keuangan', 'Ekraf', 'Destinasi', 'Pemasaran', 'Sdm'];
 
-        return view('admin.manajemen-user', compact('users', 'total_baru', 'divisi_list'));
+        return view('admin.manajemen-user', compact('users', 'divisi_list'));
     }
 
     public function store(Request $request)
@@ -31,26 +30,24 @@ class ManajemenUserController extends Controller
         $user = Auth::user();
 
         $request->validate([
-            'username'   => 'required|string|unique:users,username',
+            'username' => 'required|string|unique:users,username',
             'nama_admin' => 'required|string',
-            'password'   => 'required|string|min:6',
-            'divisi'     => 'required',
+            'password' => 'required|string|min:6',
+            'divisi' => 'required',
         ]);
 
         $role = 'anggota';
-        $divisi = $request->divisi;
-
-        if ($user->isSuperAdmin() && $request->role === 'admin_divisi') {
-            $role = 'admin_divisi';
+        if ($user->isSuperAdmin() && in_array($request->role, ['admin_divisi', 'anggota'])) {
+            $role = $request->role;
         }
 
         User::create([
-            'username'   => $request->username,
+            'username' => $request->username,
             'nama_admin' => $request->nama_admin,
-            'email'      => $request->email,
-            'password'   => Hash::make($request->password),
-            'role'       => $role,
-            'divisi'     => $divisi,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => $role,
+            'divisi' => $request->divisi,
         ]);
 
         return back()->with('success', 'Akun berhasil dibuat!');
@@ -60,26 +57,35 @@ class ManajemenUserController extends Controller
     {
         $request->validate([
             'nama_admin' => 'required|string',
-            'username'   => 'required|string|unique:users,username,' . $user->id,
+            'username' => 'required|string|unique:users,username,'.$user->id,
         ]);
 
         $data = [
             'nama_admin' => $request->nama_admin,
-            'username'   => $request->username,
-            'email'      => $request->email,
-            'divisi'     => $request->divisi,
+            'username' => $request->username,
+            'email' => $request->email,
+            'divisi' => $request->divisi,
         ];
+
+        if (Auth::user()->isSuperAdmin() && $request->filled('role')) {
+                $data['role'] = $request->role;
+        }
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
 
-        if (Auth::user()->isSuperAdmin() && $request->filled('role')) {
-            $data['role'] = $request->role;
-        }
-
         $user->update($data);
+
         return back()->with('success', 'Akun berhasil diupdate!');
+    }
+
+    public function toggleActive(User $user)
+    {
+        if ($user->role === 'super_admin') {
+            return back()->with('error', 'Tidak bisa nonaktifkan super admin!');
+        }
+        return back()->with('error', 'Fitur ini tidak tersedia.');
     }
 
     public function destroy(User $user)
@@ -88,6 +94,7 @@ class ManajemenUserController extends Controller
             return back()->with('error', 'Tidak bisa hapus super admin!');
         }
         $user->delete();
+
         return back()->with('success', 'Akun berhasil dihapus!');
     }
 }

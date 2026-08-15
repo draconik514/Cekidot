@@ -206,6 +206,72 @@
         .layanan-card .layanan-desc { font-size: 11px; min-height: 24px; margin-bottom: 10px; }
         .btn-layanan { font-size: 10px; padding: 4px 12px; gap: 4px; }
     }
+
+    /* ===== STATISTIK PERKEMBANGAN ===== */
+    .stats-section {
+        padding: 70px 0 20px;
+        background: linear-gradient(180deg, #dce3ed 0%, #eef2f7 100%);
+        position: relative;
+    }
+    .stats-section .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .stats-header { text-align: center; margin-bottom: 40px; }
+    .stats-header h2 { font-size: 28px; color: #0f3b5e; margin-bottom: 8px; font-weight: 800; }
+    .stats-header h2 span { color: #eab308; }
+    .stats-header .stats-sub { color: #64748b; font-size: 14px; }
+    .dev-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+    }
+    .dev-item {
+        background: linear-gradient(160deg, #ffffff 0%, #f4f7fb 100%);
+        border-radius: 18px;
+        padding: 30px 20px 24px;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 6px 24px rgba(15,59,94,0.07);
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .dev-item:hover { transform: translateY(-5px); box-shadow: 0 12px 36px rgba(15,59,94,0.13); }
+    .dev-item .dev-icon {
+        width: 66px; height: 66px;
+        margin: 0 auto 16px;
+        border-radius: 22px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 26px;
+        color: #ffffff;
+        background: linear-gradient(135deg, #0f3b5e, #1a5a7a);
+        box-shadow: 0 6px 18px rgba(15,59,94,0.25);
+        transform: rotate(-4deg);
+    }
+    .dev-item:nth-child(2) .dev-icon { background: linear-gradient(135deg, #1a7a8a, #26a0b5); }
+    .dev-item:nth-child(3) .dev-icon { background: linear-gradient(135deg, #b48b08, #eab308); }
+    .dev-item:nth-child(4) .dev-icon { background: linear-gradient(135deg, #2f7d4f, #3fa66a); }
+    .dev-item .dev-value {
+        font-size: 34px;
+        font-weight: 900;
+        color: #0f3b5e;
+        line-height: 1.1;
+        font-variant-numeric: tabular-nums;
+    }
+    .dev-item .dev-label {
+        margin-top: 8px;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+    }
+    @media (max-width: 768px) {
+        .dev-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .dev-item { padding: 22px 14px 18px; }
+        .dev-item .dev-value { font-size: 26px; }
+    }
+    @media (max-width: 480px) {
+        .stats-section { padding: 40px 0 10px; }
+        .stats-header h2 { font-size: 22px; }
+        .dev-item .dev-icon { width: 52px; height: 52px; font-size: 20px; border-radius: 16px; }
+    }
 </style>
 @endsection
 
@@ -239,6 +305,38 @@
         @for($i = 0; $i < max(3, $slides->count()); $i++)
         <span class="dot {{ $i === 0 ? 'active' : '' }}" data-index="{{ $i }}"></span>
         @endfor
+    </div>
+</section>
+
+<!-- STATISTIK PERKEMBANGAN -->
+<section class="stats-section">
+    <div class="container">
+        <div class="stats-header">
+            <h2>Perkembangan <span>Kinerja</span> Dinas Pariwisata</h2>
+            <div class="stats-sub">Pantau perkembangan dan capaian kinerja secara transparan</div>
+        </div>
+        <div class="dev-grid">
+            <div class="dev-item">
+                <div class="dev-icon"><i class="fas fa-envelope-open-text"></i></div>
+                <div class="dev-value">{{ number_format($total_surat) }}</div>
+                <div class="dev-label">Surat Masuk</div>
+            </div>
+            <div class="dev-item">
+                <div class="dev-icon"><i class="fas fa-clipboard-check"></i></div>
+                <div class="dev-value">{{ number_format($total_akip) }}</div>
+                <div class="dev-label">Dokumen AKIP</div>
+            </div>
+            <div class="dev-item">
+                <div class="dev-icon"><i class="fas fa-user-check"></i></div>
+                <div class="dev-value">{{ number_format($total_iki) }}</div>
+                <div class="dev-label">Dokumen IKI</div>
+            </div>
+            <div class="dev-item">
+                <div class="dev-icon"><i class="fas fa-chart-pie"></i></div>
+                <div class="dev-value">{{ number_format($total_monev) }}</div>
+                <div class="dev-label">Monev Bulanan</div>
+            </div>
+        </div>
     </div>
 </section>
 

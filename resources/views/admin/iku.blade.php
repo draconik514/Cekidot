@@ -1480,6 +1480,11 @@
 
 <form method="post" enctype="multipart/form-data" autocomplete="off" id="mainForm" action="{{ route('admin.iku.update') }}">
     @csrf
+    @if(! $can_edit)
+    <div style="background:#fefce8;border:1px solid #fde047;color:#713f12;padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:14px;display:flex;align-items:center;gap:8px;">
+        <i class="fas fa-eye"></i> Anda dalam mode <strong>view-only</strong>. Data IKU tingkat Dinas hanya dapat diubah oleh Super Admin / Admin Divisi.
+    </div>
+    @endif
     <input type="hidden" name="kategori" value="{{ $kategori_aktif }}">
     <input type="hidden" name="tahun" value="{{ $tahun_aktif }}">
     <input type="hidden" name="sub" value="{{ $subkategori_wisata }}">
@@ -1814,7 +1819,9 @@
     </div>
 
     <div style="margin-top:16px; text-align:right;">
+        @if($can_edit)
         <button type="submit" name="update" value="1" class="btn-save" id="btnSave"><i class="fas fa-save"></i> Simpan Perubahan</button>
+        @endif
     </div>
 </form>
 
@@ -2591,6 +2598,22 @@ document.addEventListener('DOMContentLoaded', function() {
             successAlert.style.display = 'none';
         }, 5000);
     }
+
+    @if(! $can_edit)
+    var mainForm = document.getElementById('mainForm');
+    if (mainForm) {
+        mainForm.querySelectorAll('input, textarea, select, button').forEach(function(el) {
+            el.disabled = true;
+        });
+        document.querySelectorAll('.btn-hapus-file, .confirm-overlay').forEach(function(el) {
+            if (el) el.style.display = 'none';
+        });
+        ['uploadInfografisBtn', 'deleteInfografisBtn'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+    }
+    @endif
 });
 </script>
 @endsection

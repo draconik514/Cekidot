@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -15,6 +14,8 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             UsersSeeder::class,
+            BidangSeeder::class,
+            AdminBidangSeeder::class,
             SliderSeeder::class,
             IkuPenilaianSeeder::class,
             IkuEkrafSeeder::class,

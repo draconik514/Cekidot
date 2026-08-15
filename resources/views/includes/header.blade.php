@@ -34,8 +34,8 @@
                     </a>
                     @else
                     <a href="{{ route('login') }}" class="btn-login-nav">
-                        <i class="fas fa-user-shield"></i>
-                        <span>Admin</span>
+                        <i class="fas fa-arrow-right-to-bracket"></i>
+                        <span>Login</span>
                     </a>
                     @endauth
                 </li>

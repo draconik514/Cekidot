@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('file_type')->nullable();
             $table->bigInteger('file_size')->default(0);
             $table->integer('tahun');
+            $table->string('divisi')->nullable();
             $table->integer('urutan')->default(0);
             $table->string('status')->default('aktif');
             $table->timestamps();
